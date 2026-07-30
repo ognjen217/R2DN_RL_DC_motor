@@ -1,0 +1,209 @@
+{
+  "checks": [
+    {
+      "criterion": "paired thermal output separation dominates RK4 refinement error",
+      "metrics": {
+        "minimum_ratio": 10000.0,
+        "scaled_solver_error": 8.438789151909987e-09,
+        "scaled_thermal_signal": 0.09015914847712005,
+        "signal_to_solver_ratio": 10683896.333245149
+      },
+      "name": "thermal_signal_exceeds_solver_error",
+      "passed": true
+    },
+    {
+      "criterion": "same [i0, omega0, u] yields physically meaningful hot/cold separation",
+      "metrics": {
+        "initial_relative_resistance_difference": 0.2505271416662583,
+        "maximum_acceleration_difference_rad_s2": 80.0479202485567,
+        "maximum_current_difference_a": 2.253978711928001,
+        "maximum_speed_difference_rad_s": 19.904849926356036
+      },
+      "name": "open_loop_outputs_are_separated",
+      "passed": true
+    },
+    {
+      "criterion": "hidden thermal state changes both tracking IAE and voltage effort",
+      "metrics": {
+        "cold_tracking_iae": 29.42627477634126,
+        "control_effort_relative_difference": 0.08364845301655323,
+        "hot_tracking_iae": 35.11925238721495,
+        "tracking_iae_relative_difference": 0.19346579389147986
+      },
+      "name": "closed_loop_control_is_affected",
+      "passed": true
+    },
+    {
+      "criterion": "probe features are derived exclusively from histories of [i, omega, u]",
+      "metrics": {
+        "history_feature_count": 6,
+        "instantaneous_feature_count": 3,
+        "temperature_feature_present": false
+      },
+      "name": "temperature_is_not_in_probe_features",
+      "passed": true
+    },
+    {
+      "criterion": "train/test trajectory IDs are disjoint and all pilot rollouts remain safe",
+      "metrics": {
+        "pilot_terminated": false,
+        "test_trajectories": 4,
+        "training_trajectories": 12
+      },
+      "name": "pilot_split_is_by_trajectory",
+      "passed": true
+    },
+    {
+      "criterion": "one instantaneous [i, omega, u] sample does not reveal temperature",
+      "metrics": {
+        "instantaneous_mae_c": 20.41164083891209,
+        "mean_baseline_mae_c": 20.727596839456748,
+        "minimum_mae_c": 5.0
+      },
+      "name": "instantaneous_probe_is_nontrivial",
+      "passed": true
+    },
+    {
+      "criterion": "held-out history probe recovers T with material gain over one sample",
+      "metrics": {
+        "history_mae_c": 0.06779488871295206,
+        "history_s": 0.25,
+        "improvement_over_instantaneous": 0.996678616420503,
+        "maximum_mae_c": 2.0,
+        "test_samples": 224
+      },
+      "name": "history_probe_recovers_temperature",
+      "passed": true
+    }
+  ],
+  "control_metrics": {
+    "cold_control_effort_v_s": 155.8198826786108,
+    "cold_maximum_voltage_v": 25.91313144420253,
+    "cold_terminated": false,
+    "cold_tracking_iae": 29.42627477634126,
+    "control_effort_relative_difference": 0.08364845301655323,
+    "hot_control_effort_v_s": 168.85397481389742,
+    "hot_maximum_voltage_v": 29.268397476615476,
+    "hot_terminated": false,
+    "hot_tracking_iae": 35.11925238721495,
+    "tracking_iae_relative_difference": 0.19346579389147986
+  },
+  "gate": "gate_1_hidden_temperature_observability",
+  "passed": true,
+  "phase": 3,
+  "physical_metrics": {
+    "cold_fine_terminated": false,
+    "cold_open_loop_tracking_iae": 179.1846396033786,
+    "cold_terminated": false,
+    "hot_fine_terminated": false,
+    "hot_open_loop_tracking_iae": 238.2935672133614,
+    "hot_terminated": false,
+    "initial_relative_resistance_difference": 0.2505271416662583,
+    "maximum_acceleration_difference_rad_s2": 80.0479202485567,
+    "maximum_current_difference_a": 2.253978711928001,
+    "maximum_resistance_difference_ohm": 0.30654000000000026,
+    "maximum_scaled_solver_error": 8.438789151909987e-09,
+    "maximum_scaled_thermal_output_signal": 0.09015914847712005,
+    "maximum_speed_difference_rad_s": 19.904849926356036,
+    "open_loop_tracking_iae_relative_difference": 0.3298772023138767,
+    "signal_to_solver_ratio": 10683896.333245149
+  },
+  "probe_feature_names": {
+    "history": [
+      "resistance_least_squares_ohm",
+      "resistance_median_ohm",
+      "rms_current_a",
+      "mean_abs_current_a",
+      "mean_speed_rad_s",
+      "mean_voltage_v"
+    ],
+    "instantaneous": [
+      "armature_current_a",
+      "angular_speed_rad_s",
+      "previous_armature_voltage_v"
+    ]
+  },
+  "probe_results": [
+    {
+      "history_mae_c": 1.3753264203763034,
+      "history_r2": 0.9928988082284311,
+      "history_rmse_c": 1.9804178152621925,
+      "history_s": 0.005,
+      "instantaneous_mae_c": 20.651024672102682,
+      "mean_baseline_mae_c": 20.91752582827023,
+      "test_samples": 236,
+      "train_samples": 701
+    },
+    {
+      "history_mae_c": 0.4953799643396931,
+      "history_r2": 0.9989846571740078,
+      "history_rmse_c": 0.7487245850131887,
+      "history_s": 0.01,
+      "instantaneous_mae_c": 20.660588795778537,
+      "mean_baseline_mae_c": 20.914068699256696,
+      "test_samples": 236,
+      "train_samples": 701
+    },
+    {
+      "history_mae_c": 0.24974464985315473,
+      "history_r2": 0.9997526621877543,
+      "history_rmse_c": 0.3694031965631675,
+      "history_s": 0.02,
+      "instantaneous_mae_c": 20.652910204773622,
+      "mean_baseline_mae_c": 20.906675700042012,
+      "test_samples": 236,
+      "train_samples": 701
+    },
+    {
+      "history_mae_c": 0.2107197054427348,
+      "history_r2": 0.9998305877123373,
+      "history_rmse_c": 0.3054006506415993,
+      "history_s": 0.05,
+      "instantaneous_mae_c": 20.63268007004707,
+      "mean_baseline_mae_c": 20.884996277170412,
+      "test_samples": 236,
+      "train_samples": 699
+    },
+    {
+      "history_mae_c": 0.19725498239699188,
+      "history_r2": 0.9997534118052053,
+      "history_rmse_c": 0.36811281266874735,
+      "history_s": 0.1,
+      "instantaneous_mae_c": 20.610053151817297,
+      "mean_baseline_mae_c": 20.86515566599689,
+      "test_samples": 234,
+      "train_samples": 701
+    },
+    {
+      "history_mae_c": 0.06779488871295206,
+      "history_r2": 0.9999871784017178,
+      "history_rmse_c": 0.08338105549097398,
+      "history_s": 0.25,
+      "instantaneous_mae_c": 20.41164083891209,
+      "mean_baseline_mae_c": 20.727596839456748,
+      "test_samples": 224,
+      "train_samples": 670
+    },
+    {
+      "history_mae_c": 0.07679658819929408,
+      "history_r2": 0.9999824498985209,
+      "history_rmse_c": 0.09687132587307876,
+      "history_s": 0.5,
+      "instantaneous_mae_c": 20.190149988638865,
+      "mean_baseline_mae_c": 20.61196580673275,
+      "test_samples": 204,
+      "train_samples": 612
+    },
+    {
+      "history_mae_c": 0.1293314603599743,
+      "history_r2": 0.9999449076775773,
+      "history_rmse_c": 0.1690320063331004,
+      "history_s": 1.0,
+      "instantaneous_mae_c": 19.96292508088504,
+      "mean_baseline_mae_c": 20.374416982876465,
+      "test_samples": 164,
+      "train_samples": 492
+    }
+  ],
+  "selected_history_s": 0.25
+}

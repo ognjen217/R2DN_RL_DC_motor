@@ -11,6 +11,7 @@ Implementirane su:
 - **Faza 0** — zaključana eksperimentalna postavka, signali, modeli i metrike;
 - **Faza 1** — projektovan i izvršno validiran R2DN interfejs;
 - **Faza 2** — FULL elektrotermalni DC motor, RK4 i Gate 0 validacija;
+- **Faza 3** — Gate 1 vidljivosti skrivene temperature i dijagnostički history probe;
 - time-major format sekvenci i temperature-free model view;
 - observation burn-in i autoregresivni free-rollout adapter;
 - verzionisan format checkpoint manifesta;
@@ -18,9 +19,14 @@ Implementirane su:
 - provera pozitivnosti reziduala uslova (20) iz R2DN rada;
 - deterministički reset, saturacija napona i dijagnostika prekida plant rollout-a;
 - analiza električne, mehaničke i termičke vremenske konstante;
-- osam fizičkih i numeričkih testova FULL simulatora.
+- osam fizičkih i numeričkih testova FULL simulatora;
+- upareni hladan/topao eksperiment sa identičnim \((i_0,\omega_0,u)\);
+- poređenje termičkog signala sa greškom RK4 usitnjavanja;
+- dijagnostički PI test uticaja temperature na praćenje i upravljački napor;
+- temperature-free pomoćni regressor sa podelom po celim trajektorijama.
 
-Dataset, trening R2DN-a i RL još nisu implementirani.
+Konačni dataset, trening R2DN-a i RL još nisu implementirani. Pilot iz Faze 3
+postoji samo u memoriji tokom validacije i ne predstavlja dataset Faze 4.
 
 ## Brza provera
 
@@ -31,6 +37,7 @@ python -m pip install -e ".[dev]"
 python -m r2dn_dc_motor.validate_phase0
 python -m r2dn_dc_motor.validate_phase1
 python -m r2dn_dc_motor.validate_phase2
+python -m r2dn_dc_motor.validate_phase3
 pytest -v
 ruff check .
 ```
@@ -49,6 +56,8 @@ PHASE 0: PASS
 PHASE 1: PASS
 PHASE 2 SPEC: PASS
 PHASE 2 GATE 0: PASS
+PHASE 3 SPEC: PASS
+PHASE 3 GATE 1: PASS
 ```
 
 Za generisanje Phase-2 JSON izveštaja i PNG grafikona:
@@ -58,6 +67,13 @@ python -m pip install -e ".[dev,phase2]"
 python -m r2dn_dc_motor.validate_phase2 --output-dir results/phase2
 ```
 
+Za generisanje Phase-3 JSON izveštaja i PNG dijagnostike:
+
+```bash
+python -m pip install -e ".[dev,phase3]"
+python -m r2dn_dc_motor.validate_phase3 --output-dir results/phase3
+```
+
 ## Struktura
 
 ```text
@@ -65,11 +81,13 @@ python -m r2dn_dc_motor.validate_phase2 --output-dir results/phase2
 ├── configs/
 │   ├── phase0.toml
 │   ├── phase1.toml
-│   └── phase2.toml
+│   ├── phase2.toml
+│   └── phase3.toml
 ├── docs/
 │   ├── phase0_specification.md
 │   ├── phase1_design.md
 │   ├── phase2_simulator.md
+│   ├── phase3_observability.md
 │   ├── references.md
 │   └── decisions/
 ├── src/r2dn_dc_motor/data/
@@ -79,17 +97,21 @@ python -m r2dn_dc_motor.validate_phase2 --output-dir results/phase2
 ├── src/r2dn_dc_motor/plants/
 │   └── electrothermal.py
 ├── src/r2dn_dc_motor/validation/
-│   └── phase2.py
+│   ├── phase2.py
+│   └── phase3.py
 ├── src/r2dn_dc_motor/models/
 │   ├── checkpoint.py
-│   └── r2dn_adapter.py
+│   ├── r2dn_adapter.py
+│   └── temperature_probe.py
 ├── src/r2dn_dc_motor/
 │   ├── phase1_spec.py
 │   ├── phase2_spec.py
+│   ├── phase3_spec.py
 │   ├── spec.py
 │   ├── validate_phase0.py
 │   ├── validate_phase1.py
-│   └── validate_phase2.py
+│   ├── validate_phase2.py
+│   └── validate_phase3.py
 └── tests/
 ```
 
@@ -97,6 +119,10 @@ Konfiguracije u `configs/` su mašinski čitljivi izvori istine. Testovi odbijaj
 curenje temperature, drift interfejsa i fizičkog domena, teacher forcing u
 slobodnom rollout-u, nedovoljno fin RK4 korak i checkpoint napravljen drugim
 upstream commitom.
+
+Gate 1 dodatno odbija sample-level podelu pilot podataka, temperaturu u
+ulaznim obeležjima, termički signal uporediv sa numeričkom greškom i
+identifikabilnost koja postoji samo u trenutnom uzorku bez istorije.
 
 ## R2DN referenca
 

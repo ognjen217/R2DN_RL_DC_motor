@@ -1,0 +1,105 @@
+{
+  "checks": [
+    {
+      "criterion": "|i| <= 0.001 A, |omega| <= 0.001 rad/s, and winding cools",
+      "metrics": {
+        "final_current_a": -5.263965613113755e-06,
+        "final_speed_rad_s": 8.385245202307038e-05,
+        "final_temperature_c": 38.00017642334908,
+        "initial_temperature_c": 40.0
+      },
+      "name": "zero_input_returns_to_rest",
+      "passed": true
+    },
+    {
+      "criterion": "net heat is positive below and negative above the stable equilibrium",
+      "metrics": {
+        "ambient_temperature_c": 25.0,
+        "current_a": 5.0,
+        "equilibrium_temperature_c": 67.75660438894843,
+        "net_power_above_equilibrium_w": -3.05895000000001,
+        "net_power_at_ambient_w": 30.589499999999997,
+        "net_power_below_equilibrium_w": 15.29475
+      },
+      "name": "current_heats_toward_equilibrium",
+      "passed": true
+    },
+    {
+      "criterion": "zero-current RK4 cooling matches the analytic exponential within 1e-9 C",
+      "metrics": {
+        "absolute_error_c": 2.1316282072803006e-13,
+        "actual_temperature_c": 84.8028869509058,
+        "analytic_temperature_c": 84.80288695090601,
+        "initial_temperature_c": 90.0
+      },
+      "name": "zero_current_cools_to_ambient",
+      "passed": true
+    },
+    {
+      "criterion": "R(T_hot) > R(T_ambient) > 0",
+      "metrics": {
+        "high_resistance_ohm": 1.5301200000000001,
+        "high_temperature_c": 90.0,
+        "low_resistance_ohm": 1.22358,
+        "low_temperature_c": 25.0,
+        "relative_increase": 0.2505271416662582
+      },
+      "name": "resistance_increases_with_temperature",
+      "passed": true
+    },
+    {
+      "criterion": "same voltage and mechanical state produce measurably lower hot current",
+      "metrics": {
+        "cold_current_a": 18.829282944663028,
+        "comparison_time_s": 0.02,
+        "current_reduction_a": 3.671351518655099,
+        "hot_current_a": 15.157931426007929
+      },
+      "name": "hot_motor_draws_less_current",
+      "passed": true
+    },
+    {
+      "criterion": "scaled final-state difference <= 1e-07",
+      "metrics": {
+        "coarse_step_s": 0.0001,
+        "current_difference_a": 3.8545167058146035e-11,
+        "fine_step_s": 5e-05,
+        "maximum_scaled_final_state_error": 1.2357759260339663e-11,
+        "speed_difference_rad_s": 4.4579451241588686e-10,
+        "temperature_difference_c": 1.4829311112407595e-09
+      },
+      "name": "rk4_step_converges",
+      "passed": true
+    },
+    {
+      "criterion": "alpha=0 makes [i, omega] temperature-independent within 1e-11",
+      "metrics": {
+        "cold_final_temperature_c": 28.139447777954754,
+        "hot_final_temperature_c": 92.60003179948187,
+        "maximum_current_speed_difference": 0.0
+      },
+      "name": "alpha_zero_is_isothermal",
+      "passed": true
+    },
+    {
+      "criterion": "P_copper - P_cooling equals Cth*dT/dt and is zero at equilibrium",
+      "metrics": {
+        "cooling_w": 35.63050365745703,
+        "copper_loss_w": 35.63050365745702,
+        "equilibrium_temperature_c": 67.75660438894843,
+        "net_heating_w": -7.105427357601002e-15,
+        "temperature_rate_c_per_s": -3.552713678800501e-16
+      },
+      "name": "thermal_power_balance_is_consistent",
+      "passed": true
+    }
+  ],
+  "gate": "gate_0_physical_plausibility",
+  "passed": true,
+  "phase": 2,
+  "time_constants_s": {
+    "electrical": 0.0025,
+    "mechanical": 0.2727272727272727,
+    "thermal": 24.0
+  }
+}

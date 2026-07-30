@@ -1,0 +1,81 @@
+schema_version = 1
+
+[phase]
+number = 3
+name = "hidden_temperature_observability"
+status = "implemented"
+
+[paired_experiment]
+cold_temperature_c = 25.0
+hot_temperature_c = 90.0
+initial_current_a = 0.0
+initial_speed_rad_s = 0.0
+duration_s = 5.0
+voltage_hold_s = 0.25
+voltage_pattern_v = [12.0, 18.0, 8.0, 24.0, 15.0, 20.0, 10.0, 22.0]
+load_torque_n_m = 0.15
+tracking_reference_rad_s = 150.0
+
+[solver_comparison]
+fine_step_divisor = 2
+output_scales = [25.0, 500.0]
+
+[closed_loop]
+controller = "diagnostic_speed_pi"
+reference_rad_s = 150.0
+duration_s = 8.0
+proportional_gain_v_per_rad_s = 0.12
+integral_gain_v_per_rad = 1.0
+anti_windup = "conditional_integration"
+
+[pilot]
+trajectory_count = 16
+test_trajectory_ids = [0, 5, 10, 15]
+seed_base = 8100
+duration_s = 3.0
+initial_temperature_c = [25.0, 90.0]
+initial_current_a = 0.0
+initial_speed_rad_s = 0.0
+load_torque_n_m = 0.0
+voltage_hold_s = 0.1
+voltage_levels_v = [-18.0, -9.0, 0.0, 9.0, 18.0]
+split_policy = "whole_trajectory_stratified_temperature"
+raw_storage = "in_memory_diagnostic_only"
+
+[probe]
+name = "electrical_residual_history_ridge"
+allowed_signals = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+    "armature_voltage_v",
+]
+forbidden_signals = ["winding_temperature_c"]
+history_windows_s = [0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0]
+selected_history_s = 0.25
+sample_stride_s = 0.05
+minimum_informative_current_a = 0.5
+ridge_l2 = 0.001
+temperature_use = "training_target_and_evaluation_only"
+
+[gate]
+name = "gate_1_hidden_temperature_observability"
+required_checks = [
+    "thermal_signal_exceeds_solver_error",
+    "open_loop_outputs_are_separated",
+    "closed_loop_control_is_affected",
+    "temperature_is_not_in_probe_features",
+    "pilot_split_is_by_trajectory",
+    "instantaneous_probe_is_nontrivial",
+    "history_probe_recovers_temperature",
+]
+minimum_signal_to_solver_ratio = 10000.0
+minimum_max_current_difference_a = 0.5
+minimum_max_speed_difference_rad_s = 5.0
+minimum_max_acceleration_difference_rad_s2 = 10.0
+minimum_relative_resistance_difference = 0.15
+minimum_tracking_iae_relative_difference = 0.05
+minimum_control_effort_relative_difference = 0.03
+minimum_instantaneous_probe_mae_c = 5.0
+maximum_history_probe_mae_c = 2.0
+minimum_history_mae_improvement_fraction = 0.5
+minimum_test_samples = 100

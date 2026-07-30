@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "r2dn-dc-motor-control"
-version = "0.3.0"
+version = "0.4.0"
 description = "R2DN world-model experiments for electrothermal DC-motor control"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -25,11 +25,15 @@ r2dn = [
 phase2 = [
     "matplotlib>=3.9",
 ]
+phase3 = [
+    "matplotlib>=3.9",
+]
 
 [project.scripts]
 validate-phase0 = "r2dn_dc_motor.validate_phase0:main"
 validate-phase1 = "r2dn_dc_motor.validate_phase1:main"
 validate-phase2 = "r2dn_dc_motor.validate_phase2:main"
+validate-phase3 = "r2dn_dc_motor.validate_phase3:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -39,6 +43,7 @@ addopts = "-q"
 testpaths = ["tests"]
 markers = [
     "r2dn_integration: requires the optional official R2DN/JAX dependency",
+    "phase3_gate: runs the complete deterministic Phase-3 numerical pilot",
 ]
 
 [tool.ruff]
