@@ -1,0 +1,125 @@
+schema_version = 1
+
+[experiment]
+id = "r2dn_dc_motor_hidden_thermal"
+phase = 0
+task = "angular_speed_tracking"
+hypothesis = "ppo_r2dn_has_smaller_full_plant_transfer_gap_than_ppo_iso_cal"
+random_seed = 20260729
+
+[signals]
+state = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+    "winding_temperature_c",
+]
+plant_output = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+]
+hidden_state = ["winding_temperature_c"]
+control = "armature_voltage_v"
+known_disturbance = "load_torque_n_m"
+reference = "angular_speed_reference_rad_s"
+
+world_model_input = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+    "armature_voltage_v",
+]
+world_model_output = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+]
+policy_observation = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+    "angular_speed_reference_rad_s",
+    "previous_armature_voltage_v",
+]
+policy_action = "armature_voltage_v"
+
+[assumptions]
+only_hidden_dynamic_state = "winding_temperature_c"
+load_torque = "known_constant_in_core_experiment"
+ambient_temperature = "constant_in_core_experiment"
+temperature_available_to_full_plant = true
+temperature_available_to_world_models = false
+temperature_available_to_policy = false
+temperature_used_for_evaluation = true
+
+[limits.armature_voltage_v]
+minimum = -48.0
+maximum = 48.0
+
+[limits.armature_current_a]
+minimum = -25.0
+maximum = 25.0
+
+[limits.angular_speed_rad_s]
+minimum = -500.0
+maximum = 500.0
+
+[limits.angular_speed_reference_rad_s]
+minimum = -400.0
+maximum = 400.0
+
+[limits.winding_temperature_c]
+minimum = 20.0
+maximum = 120.0
+
+[models]
+required = [
+    "FULL",
+    "ISO-NOM",
+    "ISO-CAL",
+    "R2DN",
+    "PI",
+    "PPO-FULL",
+]
+optional = ["GRU"]
+
+[temporal_representation]
+full_plant = "continuous_ode_rk4"
+iso_nom = "continuous_ode_rk4"
+iso_cal = "continuous_ode_rk4"
+r2dn = "discrete_recurrent_state_space"
+control_period_s = 0.001
+plant_integrator_step_s = 0.0001
+
+[metrics]
+primary = [
+    "long_rollout_nrmse",
+    "full_plant_speed_iae",
+]
+secondary = [
+    "one_step_rmse",
+    "maximum_prediction_error",
+    "rollout_instability_rate",
+    "speed_ise",
+    "overshoot_percent",
+    "settling_time_s",
+    "rms_current_a",
+    "maximum_current_a",
+    "control_effort",
+    "voltage_total_variation",
+    "saturation_fraction",
+    "maximum_temperature_c",
+    "successful_episode_fraction",
+    "execution_time_s",
+]
+transfer_gap = "abs(world_model_return - full_plant_return)"
+primary_comparison = "transfer_gap(PPO-R2DN) < transfer_gap(PPO-ISO-CAL)"
+
+[r2dn_reference]
+paper_title = "R2DN: Scalable Parameterization of Contracting and Lipschitz Recurrent Deep Networks"
+paper_arxiv = "2504.01250"
+paper_version = "v2"
+repository = "https://github.com/nic-barbara/R2DN"
+commit = "5e65ac9bb5a057d41232162133ac1454865b965b"
+implementation_path = "robustnn/r2dn.py"
+class_name = "ContractingR2DN"
+backend = "jax_flax"
+license = "MIT"
+integration_strategy = "pinned_upstream_dependency_or_attributed_vendor_copy"
+
