@@ -1,0 +1,100 @@
+schema_version = 1
+
+[phase]
+number = 2
+name = "full_electrothermal_dc_motor"
+status = "implemented"
+
+[state]
+order = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+    "winding_temperature_c",
+]
+measured = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+]
+hidden = ["winding_temperature_c"]
+
+[parameters.electrical]
+armature_inductance_h = 0.003
+reference_resistance_ohm = 1.2
+reference_temperature_c = 20.0
+resistance_temperature_coefficient_per_c = 0.00393
+back_emf_constant_v_s_per_rad = 0.08
+torque_constant_n_m_per_a = 0.08
+
+[parameters.mechanical]
+inertia_kg_m2 = 0.002
+viscous_friction_n_m_s_per_rad = 0.002
+default_load_torque_n_m = 0.15
+
+[parameters.thermal]
+thermal_capacitance_j_per_c = 20.0
+thermal_resistance_c_per_w = 1.2
+ambient_temperature_c = 25.0
+
+[limits.armature_voltage_v]
+minimum = -48.0
+maximum = 48.0
+
+[limits.armature_current_a]
+minimum = -25.0
+maximum = 25.0
+
+[limits.angular_speed_rad_s]
+minimum = -500.0
+maximum = 500.0
+
+[limits.winding_temperature_c]
+minimum = 20.0
+maximum = 120.0
+
+[reset]
+default_current_a = 0.0
+default_speed_rad_s = 0.0
+default_temperature_c = 25.0
+random_current_a = [-0.5, 0.5]
+random_speed_rad_s = [-5.0, 5.0]
+random_temperature_c = [25.0, 90.0]
+
+[numerics]
+method = "classical_rk4"
+control_period_s = 0.001
+integrator_step_s = 0.0001
+voltage_policy = "clip_to_limits"
+state_limit_policy = "terminate_without_state_clipping"
+nonfinite_policy = "terminate"
+
+[time_horizons]
+pilot_burn_in_s = 2.0
+core_episode_s = 120.0
+prediction_horizons_s = [0.001, 0.01, 0.1, 1.0, 10.0, 60.0]
+
+[validation]
+drive_voltage_v = 24.0
+validation_current_a = 5.0
+hot_temperature_c = 90.0
+zero_input_duration_s = 4.0
+cooling_duration_s = 2.0
+hot_cold_duration_s = 0.02
+convergence_duration_s = 0.2
+convergence_scaled_tolerance = 1.0e-7
+zero_input_current_tolerance_a = 1.0e-3
+zero_input_speed_tolerance_rad_s = 1.0e-3
+alpha_zero_output_tolerance = 1.0e-11
+plot_response_duration_s = 5.0
+
+[gate]
+name = "gate_0_physical_plausibility"
+required_checks = [
+    "zero_input_returns_to_rest",
+    "current_heats_toward_equilibrium",
+    "zero_current_cools_to_ambient",
+    "resistance_increases_with_temperature",
+    "hot_motor_draws_less_current",
+    "rk4_step_converges",
+    "alpha_zero_is_isothermal",
+    "thermal_power_balance_is_consistent",
+]

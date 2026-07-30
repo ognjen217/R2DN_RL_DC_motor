@@ -10,13 +10,17 @@ Implementirane su:
 
 - **Faza 0** — zaključana eksperimentalna postavka, signali, modeli i metrike;
 - **Faza 1** — projektovan i izvršno validiran R2DN interfejs;
+- **Faza 2** — FULL elektrotermalni DC motor, RK4 i Gate 0 validacija;
 - time-major format sekvenci i temperature-free model view;
 - observation burn-in i autoregresivni free-rollout adapter;
 - verzionisan format checkpoint manifesta;
 - integracioni test sa zvaničnim `ContractingR2DN` kodom;
-- provera pozitivnosti reziduala uslova (20) iz R2DN rada.
+- provera pozitivnosti reziduala uslova (20) iz R2DN rada;
+- deterministički reset, saturacija napona i dijagnostika prekida plant rollout-a;
+- analiza električne, mehaničke i termičke vremenske konstante;
+- osam fizičkih i numeričkih testova FULL simulatora.
 
-Simulator motora, dataset, trening R2DN-a i RL još nisu implementirani.
+Dataset, trening R2DN-a i RL još nisu implementirani.
 
 ## Brza provera
 
@@ -26,6 +30,7 @@ Potreban je Python 3.11 ili noviji.
 python -m pip install -e ".[dev]"
 python -m r2dn_dc_motor.validate_phase0
 python -m r2dn_dc_motor.validate_phase1
+python -m r2dn_dc_motor.validate_phase2
 pytest -v
 ruff check .
 ```
@@ -42,6 +47,15 @@ Očekivani rezultat validatora je:
 ```text
 PHASE 0: PASS
 PHASE 1: PASS
+PHASE 2 SPEC: PASS
+PHASE 2 GATE 0: PASS
+```
+
+Za generisanje Phase-2 JSON izveštaja i PNG grafikona:
+
+```bash
+python -m pip install -e ".[dev,phase2]"
+python -m r2dn_dc_motor.validate_phase2 --output-dir results/phase2
 ```
 
 ## Struktura
@@ -50,28 +64,39 @@ PHASE 1: PASS
 .
 ├── configs/
 │   ├── phase0.toml
-│   └── phase1.toml
+│   ├── phase1.toml
+│   └── phase2.toml
 ├── docs/
 │   ├── phase0_specification.md
 │   ├── phase1_design.md
+│   ├── phase2_simulator.md
 │   ├── references.md
 │   └── decisions/
 ├── src/r2dn_dc_motor/data/
 │   └── sequences.py
+├── src/r2dn_dc_motor/numerics/
+│   └── rk4.py
+├── src/r2dn_dc_motor/plants/
+│   └── electrothermal.py
+├── src/r2dn_dc_motor/validation/
+│   └── phase2.py
 ├── src/r2dn_dc_motor/models/
 │   ├── checkpoint.py
 │   └── r2dn_adapter.py
 ├── src/r2dn_dc_motor/
 │   ├── phase1_spec.py
+│   ├── phase2_spec.py
 │   ├── spec.py
 │   ├── validate_phase0.py
-│   └── validate_phase1.py
+│   ├── validate_phase1.py
+│   └── validate_phase2.py
 └── tests/
 ```
 
-`configs/phase0.toml` i `configs/phase1.toml` su mašinski čitljivi izvori
-istine. Testovi odbijaju curenje temperature, drift interfejsa, teacher forcing
-u slobodnom rollout-u i checkpoint napravljen drugim upstream commitom.
+Konfiguracije u `configs/` su mašinski čitljivi izvori istine. Testovi odbijaju
+curenje temperature, drift interfejsa i fizičkog domena, teacher forcing u
+slobodnom rollout-u, nedovoljno fin RK4 korak i checkpoint napravljen drugim
+upstream commitom.
 
 ## R2DN referenca
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "r2dn-dc-motor-control"
-version = "0.2.0"
+version = "0.3.0"
 description = "R2DN world-model experiments for electrothermal DC-motor control"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -22,10 +22,14 @@ r2dn = [
     "jax==0.5.3",
     "robustnn @ git+https://github.com/nic-barbara/R2DN.git@5e65ac9bb5a057d41232162133ac1454865b965b",
 ]
+phase2 = [
+    "matplotlib>=3.9",
+]
 
 [project.scripts]
 validate-phase0 = "r2dn_dc_motor.validate_phase0:main"
 validate-phase1 = "r2dn_dc_motor.validate_phase1:main"
+validate-phase2 = "r2dn_dc_motor.validate_phase2:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
