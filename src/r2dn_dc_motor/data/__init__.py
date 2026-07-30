@@ -1,5 +1,30 @@
-"""Validated trajectory containers and model-safe views."""
+"""Validated trajectory containers, generators, and model-safe views."""
 
+from r2dn_dc_motor.data.phase4_dataset import (
+    NormalizationStatistics,
+    Phase4Dataset,
+    RawPhase4Trajectory,
+)
+from r2dn_dc_motor.data.phase4_generation import (
+    DatasetGenerationError,
+    GeneratedDataset,
+    TrajectoryPlan,
+    build_trajectory_plans,
+    generate_phase4_dataset,
+    simulate_trajectory_group,
+)
 from r2dn_dc_motor.data.sequences import FullTrajectoryBatch, ModelSequenceBatch
 
-__all__ = ["FullTrajectoryBatch", "ModelSequenceBatch"]
+__all__ = [
+    "DatasetGenerationError",
+    "FullTrajectoryBatch",
+    "GeneratedDataset",
+    "ModelSequenceBatch",
+    "NormalizationStatistics",
+    "Phase4Dataset",
+    "RawPhase4Trajectory",
+    "TrajectoryPlan",
+    "build_trajectory_plans",
+    "generate_phase4_dataset",
+    "simulate_trajectory_group",
+]

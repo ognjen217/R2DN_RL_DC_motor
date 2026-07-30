@@ -1,0 +1,139 @@
+schema_version = 1
+
+[phase]
+number = 4
+name = "versioned_full_simulator_dataset"
+status = "implemented"
+
+[dataset]
+dataset_id = "full_electrothermal_dc_motor"
+version = "1.0.0"
+generator = "r2dn_dc_motor.phase4"
+simulator = "FULL"
+storage_format = "npz_per_trajectory"
+dtype = "float32"
+control_period_s = 0.001
+compression = true
+
+[features]
+state = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+    "winding_temperature_c",
+]
+transition = [
+    "commanded_armature_voltage_v",
+    "armature_voltage_v",
+    "load_torque_n_m",
+    "angular_speed_reference_rad_s",
+]
+model_observation = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+]
+model_control = ["armature_voltage_v"]
+evaluation_only = [
+    "winding_temperature_c",
+    "load_torque_n_m",
+    "angular_speed_reference_rad_s",
+    "commanded_armature_voltage_v",
+]
+
+[splits]
+names = ["train", "validation", "id_test", "ood_test"]
+policy = "disjoint_whole_trajectories"
+id_policy = "new_seeds_inside_training_domain"
+ood_axes = [
+    "higher_initial_temperature",
+    "stronger_load",
+    "novel_profile",
+    "physical_parameter_shift",
+]
+
+[normalization]
+fit_split = "train"
+observation_features = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+]
+control_features = ["armature_voltage_v"]
+temperature_used = false
+standard_deviation_floor = 1.0e-6
+
+[domain]
+initial_current_a = [-0.5, 0.5]
+initial_speed_rad_s = [-5.0, 5.0]
+temperature_bands_c = [
+    [25.0, 35.0],
+    [50.0, 70.0],
+    [75.0, 90.0],
+]
+nominal_load_torque_n_m = 0.15
+safe_voltage_limit_v = 20.0
+current_guard_a = 6.5
+speed_reference_rad_s = [-220.0, 220.0]
+
+[ood]
+higher_initial_temperature_c = [95.0, 110.0]
+stronger_load_torque_n_m = [0.25, 0.35]
+novel_speed_reference_rad_s = [-320.0, 320.0]
+reference_resistance_scale = [0.9, 1.1]
+inertia_scale = [0.85, 1.15]
+thermal_capacitance_scale = [0.8, 1.2]
+
+[excitation]
+families = [
+    "prbs_voltage",
+    "piecewise_constant_voltage",
+    "step_ramp_voltage",
+    "multisine_voltage",
+    "pi_closed_loop",
+    "pi_identification",
+    "random_speed_reference",
+    "heating_cooling_cycle",
+]
+open_loop_amplitude_v = [8.0, 18.0]
+prbs_hold_s = [0.03, 0.15]
+piecewise_hold_s = [0.1, 0.5]
+reference_hold_s = [0.5, 2.0]
+identification_amplitude_v = [0.5, 2.0]
+pi_proportional_gain_v_per_rad_s = 0.12
+pi_integral_gain_v_per_rad = 1.0
+anti_windup = "conditional_integration"
+
+[profiles.ci]
+seed_base = 42000
+train_trajectories = 8
+validation_trajectories = 8
+id_test_trajectories = 8
+ood_test_trajectories = 8
+default_duration_s = 0.2
+heating_cooling_duration_s = 0.5
+minimum_total_transitions = 7600
+
+[profiles.final]
+seed_base = 420000
+train_trajectories = 224
+validation_trajectories = 32
+id_test_trajectories = 32
+ood_test_trajectories = 32
+default_duration_s = 12.0
+heating_cooling_duration_s = 36.0
+minimum_total_transitions = 4800000
+
+[integrity]
+required_checks = [
+    "full_simulator_is_the_only_source",
+    "whole_trajectory_splits_are_disjoint",
+    "all_excitation_families_are_covered",
+    "trajectories_are_complete_and_finite",
+    "signals_stay_inside_declared_limits",
+    "raw_temperature_is_retained",
+    "model_view_excludes_temperature",
+    "normalization_uses_train_only",
+    "seeds_and_content_are_reproducible",
+    "id_and_ood_domains_are_separated",
+]
+minimum_train_temperature_bands = 3
+minimum_final_trajectories = 300
+minimum_final_transitions = 4000000

@@ -1,0 +1,260 @@
+{
+  "checks": [
+    {
+      "criterion": "every trajectory must declare the Phase-2 FULL simulator",
+      "metrics": {
+        "sources": [
+          "FULL"
+        ]
+      },
+      "name": "full_simulator_is_the_only_source",
+      "passed": true
+    },
+    {
+      "criterion": "IDs and files are unique, disjoint, and match the locked split counts",
+      "metrics": {
+        "pairwise_disjoint": true,
+        "split_counts": {
+          "id_test": 32,
+          "ood_test": 32,
+          "train": 224,
+          "validation": 32
+        },
+        "unique_ids": 320,
+        "unique_paths": 320
+      },
+      "name": "whole_trajectory_splits_are_disjoint",
+      "passed": true
+    },
+    {
+      "criterion": "all eight excitation families occur in every split",
+      "metrics": {
+        "counts": {
+          "id_test": {
+            "heating_cooling_cycle": 4,
+            "multisine_voltage": 4,
+            "pi_closed_loop": 4,
+            "pi_identification": 4,
+            "piecewise_constant_voltage": 4,
+            "prbs_voltage": 4,
+            "random_speed_reference": 4,
+            "step_ramp_voltage": 4
+          },
+          "ood_test": {
+            "heating_cooling_cycle": 4,
+            "multisine_voltage": 4,
+            "pi_closed_loop": 4,
+            "pi_identification": 4,
+            "piecewise_constant_voltage": 4,
+            "prbs_voltage": 4,
+            "random_speed_reference": 4,
+            "step_ramp_voltage": 4
+          },
+          "train": {
+            "heating_cooling_cycle": 28,
+            "multisine_voltage": 28,
+            "pi_closed_loop": 28,
+            "pi_identification": 28,
+            "piecewise_constant_voltage": 28,
+            "prbs_voltage": 28,
+            "random_speed_reference": 28,
+            "step_ramp_voltage": 28
+          },
+          "validation": {
+            "heating_cooling_cycle": 4,
+            "multisine_voltage": 4,
+            "pi_closed_loop": 4,
+            "pi_identification": 4,
+            "piecewise_constant_voltage": 4,
+            "prbs_voltage": 4,
+            "random_speed_reference": 4,
+            "step_ramp_voltage": 4
+          }
+        },
+        "missing": {
+          "id_test": [],
+          "ood_test": [],
+          "train": [],
+          "validation": []
+        }
+      },
+      "name": "all_excitation_families_are_covered",
+      "passed": true
+    },
+    {
+      "criterion": "all hashed NPZ files are finite, complete, and have the locked length",
+      "metrics": {
+        "actual_transitions": 4800000,
+        "expected_transitions": 4800000,
+        "lengths_match": true,
+        "load_errors": [],
+        "terminated_trajectories": []
+      },
+      "name": "trajectories_are_complete_and_finite",
+      "passed": true
+    },
+    {
+      "criterion": "current, speed, temperature, and applied voltage stay in Phase-2 limits",
+      "metrics": {
+        "ranges": {
+          "angular_speed_rad_s": [
+            -214.32540893554688,
+            144.45498657226562
+          ],
+          "armature_current_a": [
+            -5.716390132904053,
+            6.1698832511901855
+          ],
+          "armature_voltage_v": [
+            -20.0,
+            18.575767517089844
+          ],
+          "winding_temperature_c": [
+            25.053768157958984,
+            109.0751953125
+          ]
+        },
+        "violations": {}
+      },
+      "name": "signals_stay_inside_declared_limits",
+      "passed": true
+    },
+    {
+      "criterion": "every raw trajectory retains a non-degenerate evaluation temperature",
+      "metrics": {
+        "temperature_shapes_valid": true,
+        "temperature_span_c": 84.02142715454102
+      },
+      "name": "raw_temperature_is_retained",
+      "passed": true
+    },
+    {
+      "criterion": "R2DN view is exactly [current, speed, applied voltage]",
+      "metrics": {
+        "array_projection_valid": true,
+        "forbidden_features": [],
+        "model_features": [
+          "armature_current_a",
+          "angular_speed_rad_s",
+          "armature_voltage_v"
+        ]
+      },
+      "name": "model_view_excludes_temperature",
+      "passed": true
+    },
+    {
+      "criterion": "stored moments reproduce a fresh train-only temperature-free fit",
+      "metrics": {
+        "control_count": true,
+        "control_mean": true,
+        "control_std": true,
+        "fit_split": true,
+        "observation_count": true,
+        "observation_mean": true,
+        "observation_std": true,
+        "temperature_used": true
+      },
+      "name": "normalization_uses_train_only",
+      "passed": true
+    },
+    {
+      "criterion": "manifest choices equal the seed-derived plans and content is hash-addressed",
+      "metrics": {
+        "content_hashes_valid": true,
+        "expected_seeds": 320,
+        "plan_mismatches": [],
+        "unique_seeds": 320
+      },
+      "name": "seeds_and_content_are_reproducible",
+      "passed": true
+    },
+    {
+      "criterion": "ID uses new in-domain seeds; OOD covers four declared out-of-domain axes",
+      "metrics": {
+        "id_inside_training_domain": true,
+        "ood_axes": [
+          "higher_initial_temperature",
+          "novel_profile",
+          "physical_parameter_shift",
+          "stronger_load"
+        ],
+        "ood_records_valid": true
+      },
+      "name": "id_and_ood_domains_are_separated",
+      "passed": true
+    }
+  ],
+  "dataset_fingerprint": "d4dbf5b72521f29006f9a5ac802115ca83505d0ec08845490580899e7a7df070",
+  "excitation_counts": {
+    "id_test": {
+      "heating_cooling_cycle": 4,
+      "multisine_voltage": 4,
+      "pi_closed_loop": 4,
+      "pi_identification": 4,
+      "piecewise_constant_voltage": 4,
+      "prbs_voltage": 4,
+      "random_speed_reference": 4,
+      "step_ramp_voltage": 4
+    },
+    "ood_test": {
+      "heating_cooling_cycle": 4,
+      "multisine_voltage": 4,
+      "pi_closed_loop": 4,
+      "pi_identification": 4,
+      "piecewise_constant_voltage": 4,
+      "prbs_voltage": 4,
+      "random_speed_reference": 4,
+      "step_ramp_voltage": 4
+    },
+    "train": {
+      "heating_cooling_cycle": 28,
+      "multisine_voltage": 28,
+      "pi_closed_loop": 28,
+      "pi_identification": 28,
+      "piecewise_constant_voltage": 28,
+      "prbs_voltage": 28,
+      "random_speed_reference": 28,
+      "step_ramp_voltage": 28
+    },
+    "validation": {
+      "heating_cooling_cycle": 4,
+      "multisine_voltage": 4,
+      "pi_closed_loop": 4,
+      "pi_identification": 4,
+      "piecewise_constant_voltage": 4,
+      "prbs_voltage": 4,
+      "random_speed_reference": 4,
+      "step_ramp_voltage": 4
+    }
+  },
+  "passed": true,
+  "phase": 4,
+  "profile": "final",
+  "signal_ranges": {
+    "angular_speed_rad_s": [
+      -214.32540893554688,
+      144.45498657226562
+    ],
+    "armature_current_a": [
+      -5.716390132904053,
+      6.1698832511901855
+    ],
+    "armature_voltage_v": [
+      -20.0,
+      18.575767517089844
+    ],
+    "winding_temperature_c": [
+      25.053768157958984,
+      109.0751953125
+    ]
+  },
+  "split_counts": {
+    "id_test": 32,
+    "ood_test": 32,
+    "train": 224,
+    "validation": 32
+  },
+  "trajectory_count": 320,
+  "transition_count": 4800000,
+  "validation": "dataset_integrity"
+}

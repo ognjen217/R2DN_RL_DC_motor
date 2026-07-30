@@ -12,6 +12,8 @@ Implementirane su:
 - **Faza 1** — projektovan i izvršno validiran R2DN interfejs;
 - **Faza 2** — FULL elektrotermalni DC motor, RK4 i Gate 0 validacija;
 - **Faza 3** — Gate 1 vidljivosti skrivene temperature i dijagnostički history probe;
+- **Faza 4** — verzionisan FULL dataset, disjunktne whole-trajectory podele,
+  train-only normalizacija i provere integriteta;
 - time-major format sekvenci i temperature-free model view;
 - observation burn-in i autoregresivni free-rollout adapter;
 - verzionisan format checkpoint manifesta;
@@ -24,9 +26,16 @@ Implementirane su:
 - poređenje termičkog signala sa greškom RK4 usitnjavanja;
 - dijagnostički PI test uticaja temperature na praćenje i upravljački napor;
 - temperature-free pomoćni regressor sa podelom po celim trajektorijama.
+- osam porodica pobude za identifikaciju i buduće upravljanje;
+- `ci` profil sa 32 trajektorije i zaključani `final` profil sa 320
+  trajektorija i 4,8 miliona prelaza;
+- odvojeni ID i OOD test skupovi sa višom temperaturom, jačim opterećenjem,
+  novim profilima i promenama fizičkih parametara;
+- SHA-256 identitet svake trajektorije i fingerprint kompletnog dataseta;
+- sirovi/evaluacioni pogled \((i,\omega,T,u,T_L,r)\) i strogo odvojeni
+  R2DN pogled \((i,\omega,u)\).
 
-Konačni dataset, trening R2DN-a i RL još nisu implementirani. Pilot iz Faze 3
-postoji samo u memoriji tokom validacije i ne predstavlja dataset Faze 4.
+Trening fizičkih baseline modela, R2DN-a i RL još nisu implementirani.
 
 ## Brza provera
 
@@ -38,6 +47,7 @@ python -m r2dn_dc_motor.validate_phase0
 python -m r2dn_dc_motor.validate_phase1
 python -m r2dn_dc_motor.validate_phase2
 python -m r2dn_dc_motor.validate_phase3
+python -m r2dn_dc_motor.validate_phase4 --spec-only
 pytest -v
 ruff check .
 ```
@@ -58,6 +68,7 @@ PHASE 2 SPEC: PASS
 PHASE 2 GATE 0: PASS
 PHASE 3 SPEC: PASS
 PHASE 3 GATE 1: PASS
+PHASE 4 SPEC: PASS
 ```
 
 Za generisanje Phase-2 JSON izveštaja i PNG grafikona:
@@ -74,6 +85,27 @@ python -m pip install -e ".[dev,phase3]"
 python -m r2dn_dc_motor.validate_phase3 --output-dir results/phase3
 ```
 
+Za brzu izgradnju i potpunu proveru Phase-4 `ci` dataseta:
+
+```bash
+python -m pip install -e ".[dev,phase4]"
+python -m r2dn_dc_motor.validate_phase4 \
+  --generate \
+  --profile ci \
+  --output-dir data/phase4-ci \
+  --artifacts-dir results/phase4-ci
+```
+
+Za zaključani dataset od 320 trajektorija i 4,8 miliona prelaza:
+
+```bash
+python -m r2dn_dc_motor.validate_phase4 \
+  --generate \
+  --profile final \
+  --output-dir data/phase4-full-v1 \
+  --artifacts-dir results/phase4-final
+```
+
 ## Struktura
 
 ```text
@@ -82,15 +114,19 @@ python -m r2dn_dc_motor.validate_phase3 --output-dir results/phase3
 │   ├── phase0.toml
 │   ├── phase1.toml
 │   ├── phase2.toml
-│   └── phase3.toml
+│   ├── phase3.toml
+│   └── phase4.toml
 ├── docs/
 │   ├── phase0_specification.md
 │   ├── phase1_design.md
 │   ├── phase2_simulator.md
 │   ├── phase3_observability.md
+│   ├── phase4_dataset.md
 │   ├── references.md
 │   └── decisions/
 ├── src/r2dn_dc_motor/data/
+│   ├── phase4_dataset.py
+│   ├── phase4_generation.py
 │   └── sequences.py
 ├── src/r2dn_dc_motor/numerics/
 │   └── rk4.py
@@ -98,7 +134,8 @@ python -m r2dn_dc_motor.validate_phase3 --output-dir results/phase3
 │   └── electrothermal.py
 ├── src/r2dn_dc_motor/validation/
 │   ├── phase2.py
-│   └── phase3.py
+│   ├── phase3.py
+│   └── phase4.py
 ├── src/r2dn_dc_motor/models/
 │   ├── checkpoint.py
 │   ├── r2dn_adapter.py
@@ -107,11 +144,13 @@ python -m r2dn_dc_motor.validate_phase3 --output-dir results/phase3
 │   ├── phase1_spec.py
 │   ├── phase2_spec.py
 │   ├── phase3_spec.py
+│   ├── phase4_spec.py
 │   ├── spec.py
 │   ├── validate_phase0.py
 │   ├── validate_phase1.py
 │   ├── validate_phase2.py
-│   └── validate_phase3.py
+│   ├── validate_phase3.py
+│   └── validate_phase4.py
 └── tests/
 ```
 
@@ -123,6 +162,11 @@ upstream commitom.
 Gate 1 dodatno odbija sample-level podelu pilot podataka, temperaturu u
 ulaznim obeležjima, termički signal uporediv sa numeričkom greškom i
 identifikabilnost koja postoji samo u trenutnom uzorku bez istorije.
+
+Faza 4 odbija bilo koji izvor osim FULL simulatora, preklapanje trajektorija
+između podela, nepotpune ili promenjene fajlove, normalizaciju koja nije
+izračunata isključivo nad `train`, curenje temperature/opterećenja u R2DN
+pogled i OOD skup koji nije stvarno izvan trening domena.
 
 ## R2DN referenca
 
