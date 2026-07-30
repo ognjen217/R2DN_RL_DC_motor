@@ -1,0 +1,202 @@
+schema_version = 1
+
+[phase]
+number = 6
+name = "r2dn_world_model_training"
+status = "implemented"
+
+[interface]
+observation = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+]
+control = ["armature_voltage_v"]
+regressor = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+    "armature_voltage_v",
+]
+target = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+]
+forbidden_training_features = [
+    "winding_temperature_c",
+    "load_torque_n_m",
+    "angular_speed_reference_rad_s",
+    "commanded_armature_voltage_v",
+]
+sequence_layout = "time_batch_feature"
+normalization = "phase4_train_only"
+
+[architecture]
+backend = "nic_barbara_contracting_r2dn"
+input_size = 3
+output_size = 2
+feature_size = 32
+hidden_sizes = [32, 32]
+candidate_latent_sizes = [4, 6, 8]
+initialization = "long_memory"
+polar_parameterization = true
+
+[loss]
+one_step = "normalized_mean_squared_error"
+rollout = "normalized_autoregressive_mean_squared_error"
+reconstruction = "normalized_burn_in_mean_squared_error"
+target_weighting = "equal_after_train_normalization"
+teacher_forcing_after_burn_in = false
+
+[optimizer]
+name = "adamw"
+learning_rate = 0.001
+weight_decay = 1.0e-6
+gradient_clip_norm = 1.0
+
+[selection]
+fit_split = "train"
+selection_split = "validation"
+id_test_used_for_selection = false
+ood_test_used_for_selection = false
+metric = "validation_free_rollout_nrmse"
+mode = "min"
+checkpoint_policy = "best_validation_long_rollout"
+
+[checkpoint]
+directory_format = "r2dn_phase6_checkpoint_v1"
+required_files = [
+    "manifest.json",
+    "parameters.msgpack",
+    "normalization.npz",
+    "training_history.json",
+]
+dataset_bound = true
+upstream_commit_bound = true
+parameter_format = "flax_msgpack"
+
+[profiles.ci]
+pilot_seed = 7
+candidate_latent_sizes = [4]
+training_seeds = [7]
+burn_in_steps = 20
+pilot_validation_horizon_steps = 20
+selection_horizon_steps = 50
+pilot_validation_seed = 6007
+selection_validation_seed = 6008
+validation_windows = 4
+history_log_interval = 1
+
+[[profiles.ci.pilot_stages]]
+name = "pilot"
+updates = 1
+rollout_steps = 4
+batch_size = 2
+one_step_weight = 0.5
+rollout_weight = 0.5
+reconstruction_weight = 0.05
+
+[[profiles.ci.final_stages]]
+name = "one_step"
+updates = 1
+rollout_steps = 1
+batch_size = 2
+one_step_weight = 1.0
+rollout_weight = 0.0
+reconstruction_weight = 0.10
+
+[[profiles.ci.final_stages]]
+name = "short_rollout"
+updates = 1
+rollout_steps = 8
+batch_size = 2
+one_step_weight = 0.5
+rollout_weight = 0.5
+reconstruction_weight = 0.05
+
+[profiles.final]
+pilot_seed = 1701
+candidate_latent_sizes = [4, 6, 8]
+training_seeds = [17, 29, 43]
+burn_in_steps = 250
+pilot_validation_horizon_steps = 500
+selection_horizon_steps = 5000
+pilot_validation_seed = 61001
+selection_validation_seed = 61002
+validation_windows = 8
+history_log_interval = 50
+
+[[profiles.final.pilot_stages]]
+name = "pilot_one_step"
+updates = 100
+rollout_steps = 1
+batch_size = 128
+one_step_weight = 1.0
+rollout_weight = 0.0
+reconstruction_weight = 0.10
+
+[[profiles.final.pilot_stages]]
+name = "pilot_short_rollout"
+updates = 100
+rollout_steps = 10
+batch_size = 64
+one_step_weight = 0.50
+rollout_weight = 0.50
+reconstruction_weight = 0.05
+
+[[profiles.final.pilot_stages]]
+name = "pilot_rollout"
+updates = 200
+rollout_steps = 100
+batch_size = 32
+one_step_weight = 0.25
+rollout_weight = 0.75
+reconstruction_weight = 0.02
+
+[[profiles.final.final_stages]]
+name = "one_step"
+updates = 300
+rollout_steps = 1
+batch_size = 256
+one_step_weight = 1.0
+rollout_weight = 0.0
+reconstruction_weight = 0.10
+
+[[profiles.final.final_stages]]
+name = "short_rollout"
+updates = 700
+rollout_steps = 10
+batch_size = 128
+one_step_weight = 0.50
+rollout_weight = 0.50
+reconstruction_weight = 0.05
+
+[[profiles.final.final_stages]]
+name = "medium_rollout"
+updates = 1000
+rollout_steps = 100
+batch_size = 64
+one_step_weight = 0.25
+rollout_weight = 0.75
+reconstruction_weight = 0.02
+
+[[profiles.final.final_stages]]
+name = "long_rollout"
+updates = 1000
+rollout_steps = 1000
+batch_size = 8
+one_step_weight = 0.10
+rollout_weight = 0.90
+reconstruction_weight = 0.01
+
+[validation]
+maximum_absolute_normalized_prediction = 25.0
+required_checks = [
+    "training_uses_only_temperature_free_model_view",
+    "training_and_selection_splits_are_isolated",
+    "normalization_matches_phase4_train_statistics",
+    "checkpoint_is_dataset_and_upstream_bound",
+    "training_losses_and_gradients_are_finite",
+    "contractivity_certificate_is_positive",
+    "selection_uses_validation_long_rollout",
+    "multiple_final_training_seeds_are_recorded",
+]
+phase6_does_not_claim_phase7_gate = true

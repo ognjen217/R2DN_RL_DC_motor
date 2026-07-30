@@ -14,6 +14,10 @@ Implementirane su:
 - **Faza 3** — Gate 1 vidljivosti skrivene temperature i dijagnostički history probe;
 - **Faza 4** — verzionisan FULL dataset, disjunktne whole-trajectory podele,
   train-only normalizacija i provere integriteta;
+- **Faza 5** — `ISO-NOM` i globalno kalibrisani `ISO-CAL`, checkpoint vezan
+  za dataset i one-step/kratka/srednja/duga ID/OOD evaluacija;
+- **Faza 6** — curriculum trening zvaničnog R2DN-a, pilot latentnih dimenzija,
+  ponavljanje za više seed-ova i verzionisan checkpoint vezan za dataset;
 - time-major format sekvenci i temperature-free model view;
 - observation burn-in i autoregresivni free-rollout adapter;
 - verzionisan format checkpoint manifesta;
@@ -35,7 +39,8 @@ Implementirane su:
 - sirovi/evaluacioni pogled \((i,\omega,T,u,T_L,r)\) i strogo odvojeni
   R2DN pogled \((i,\omega,u)\).
 
-Trening fizičkih baseline modela, R2DN-a i RL još nisu implementirani.
+RL još nije implementiran. Finalni `ISO-CAL` i R2DN checkpoint-i namerno se
+generišu lokalno iz korisnikovog Phase-4 dataseta.
 
 ## Brza provera
 
@@ -48,6 +53,8 @@ python -m r2dn_dc_motor.validate_phase1
 python -m r2dn_dc_motor.validate_phase2
 python -m r2dn_dc_motor.validate_phase3
 python -m r2dn_dc_motor.validate_phase4 --spec-only
+python -m r2dn_dc_motor.validate_phase5 --spec-only
+python -m r2dn_dc_motor.validate_phase6 --spec-only
 pytest -v
 ruff check .
 ```
@@ -69,6 +76,8 @@ PHASE 2 GATE 0: PASS
 PHASE 3 SPEC: PASS
 PHASE 3 GATE 1: PASS
 PHASE 4 SPEC: PASS
+PHASE 5 SPEC: PASS
+PHASE 6 SPEC: PASS
 ```
 
 Za generisanje Phase-2 JSON izveštaja i PNG grafikona:
@@ -106,6 +115,43 @@ python -m r2dn_dc_motor.validate_phase4 \
   --artifacts-dir results/phase4-final
 ```
 
+Za jedan globalni `ISO-CAL` fit i kompletnu Phase-5 evaluaciju:
+
+```bash
+python -m pip install -e ".[dev,phase5]"
+python -m r2dn_dc_motor.validate_phase5 \
+  --fit \
+  --dataset data/phase4-full-v1 \
+  --checkpoint checkpoints/phase5/iso_cal.json \
+  --output-dir results/phase5
+```
+
+Komanda koristi sve cele train trajektorije, ali ne čita temperaturu ni
+stvarno opterećenje tokom kalibracije. Bez `--fit` koristi već postojeći
+checkpoint i samo ponavlja evaluaciju.
+
+Za finalni R2DN pilot, curriculum trening sa tri seed-a i checkpoint:
+
+```bash
+python -m pip install -e ".[dev,phase6,phase6-cuda12]"
+python -m r2dn_dc_motor.validate_phase6 --runtime-only --require-cuda
+python -m r2dn_dc_motor.validate_phase6 \
+  --train \
+  --profile final \
+  --require-cuda \
+  --dataset data/phase4-full-v1 \
+  --checkpoint-dir checkpoints/phase6/r2dn-v1 \
+  --output-dir results/phase6
+```
+
+Komanda poredi latentne dimenzije 4/6/8 u pilotu, izabranu arhitekturu trenira
+sa seed-ovima 17/29/43 i bira checkpoint sa najmanjim validation free-rollout
+NRMSE. CUDA preflight mora da prikaže `backend: gpu` i `CUDA active: yes`;
+`--require-cuda` sprečava tihi CPU fallback. Temperatura, opterećenje, referenca
+i komandovani napon nikad ne ulaze u trening. Ovaj validator potvrđuje trening
+i integritet checkpoint-a; čisto poređenje sa ISO-CAL i uslov za prelazak na RL
+pripadaju Fazi 7.
+
 ## Struktura
 
 ```text
@@ -115,42 +161,56 @@ python -m r2dn_dc_motor.validate_phase4 \
 │   ├── phase1.toml
 │   ├── phase2.toml
 │   ├── phase3.toml
-│   └── phase4.toml
+│   ├── phase4.toml
+│   ├── phase5.toml
+│   └── phase6.toml
 ├── docs/
 │   ├── phase0_specification.md
 │   ├── phase1_design.md
 │   ├── phase2_simulator.md
 │   ├── phase3_observability.md
 │   ├── phase4_dataset.md
+│   ├── phase5_baselines.md
+│   ├── phase6_r2dn_training.md
 │   ├── references.md
 │   └── decisions/
 ├── src/r2dn_dc_motor/data/
 │   ├── phase4_dataset.py
 │   ├── phase4_generation.py
+│   ├── r2dn_windows.py
 │   └── sequences.py
 ├── src/r2dn_dc_motor/numerics/
 │   └── rk4.py
 ├── src/r2dn_dc_motor/plants/
-│   └── electrothermal.py
+│   ├── electrothermal.py
+│   └── isothermal.py
 ├── src/r2dn_dc_motor/validation/
 │   ├── phase2.py
 │   ├── phase3.py
-│   └── phase4.py
+│   ├── phase4.py
+│   ├── phase5.py
+│   └── phase6.py
 ├── src/r2dn_dc_motor/models/
 │   ├── checkpoint.py
+│   ├── isothermal_calibration.py
 │   ├── r2dn_adapter.py
+│   ├── r2dn_training.py
 │   └── temperature_probe.py
 ├── src/r2dn_dc_motor/
 │   ├── phase1_spec.py
 │   ├── phase2_spec.py
 │   ├── phase3_spec.py
 │   ├── phase4_spec.py
+│   ├── phase5_spec.py
+│   ├── phase6_spec.py
 │   ├── spec.py
 │   ├── validate_phase0.py
 │   ├── validate_phase1.py
 │   ├── validate_phase2.py
 │   ├── validate_phase3.py
-│   └── validate_phase4.py
+│   ├── validate_phase4.py
+│   ├── validate_phase5.py
+│   └── validate_phase6.py
 └── tests/
 ```
 
@@ -167,6 +227,16 @@ Faza 4 odbija bilo koji izvor osim FULL simulatora, preklapanje trajektorija
 između podela, nepotpune ili promenjene fajlove, normalizaciju koja nije
 izračunata isključivo nad `train`, curenje temperature/opterećenja u R2DN
 pogled i OOD skup koji nije stvarno izvan trening domena.
+
+Faza 5 odbija per-episode kalibraciju, korišćenje temperature ili stvarnog
+opterećenja u fitu, menjanje parametara na validation/ID/OOD podelama,
+nepotpun train skup i checkpoint sa fingerprintom drugog dataseta.
+
+Faza 6 odbija curenje evaluation-only feature-a, fit van train podele, izbor
+checkpoint-a na ID/OOD skupu, teacher forcing u rollout loss-u, promenjenu
+train-only normalizaciju, nekompletan curriculum, nekonačne loss/gradijent
+vrednosti i checkpoint sa promenjenim parametrima, istorijom ili upstream
+commitom.
 
 ## R2DN referenca
 

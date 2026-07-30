@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "r2dn-dc-motor-control"
-version = "0.5.0"
+version = "0.7.1"
 description = "R2DN world-model experiments for electrothermal DC-motor control"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -31,6 +31,19 @@ phase3 = [
 phase4 = [
     "matplotlib>=3.9",
 ]
+phase5 = [
+    "matplotlib>=3.9",
+]
+phase6 = [
+    "flax==0.10.4",
+    "jax==0.5.3",
+    "matplotlib>=3.9",
+    "optax>=0.2.4,<0.3",
+    "robustnn @ git+https://github.com/nic-barbara/R2DN.git@5e65ac9bb5a057d41232162133ac1454865b965b",
+]
+phase6-cuda12 = [
+    "jax[cuda12]==0.5.3",
+]
 
 [project.scripts]
 validate-phase0 = "r2dn_dc_motor.validate_phase0:main"
@@ -38,6 +51,8 @@ validate-phase1 = "r2dn_dc_motor.validate_phase1:main"
 validate-phase2 = "r2dn_dc_motor.validate_phase2:main"
 validate-phase3 = "r2dn_dc_motor.validate_phase3:main"
 validate-phase4 = "r2dn_dc_motor.validate_phase4:main"
+validate-phase5 = "r2dn_dc_motor.validate_phase5:main"
+validate-phase6 = "r2dn_dc_motor.validate_phase6:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -49,6 +64,8 @@ markers = [
     "r2dn_integration: requires the optional official R2DN/JAX dependency",
     "phase3_gate: runs the complete deterministic Phase-3 numerical pilot",
     "phase4_gate: generates and verifies the deterministic Phase-4 CI dataset",
+    "phase5_gate: fits and evaluates physical baselines on a tiny deterministic dataset",
+    "phase6_gate: trains and validates the official R2DN on a tiny deterministic dataset",
 ]
 
 [tool.ruff]

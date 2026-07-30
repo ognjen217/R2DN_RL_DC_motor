@@ -1,0 +1,75 @@
+schema_version = 1
+
+[phase]
+number = 5
+name = "physical_isothermal_baselines"
+status = "implemented"
+
+[interface]
+observation = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+]
+control = ["armature_voltage_v"]
+forbidden_fit_features = [
+    "winding_temperature_c",
+    "load_torque_n_m",
+    "angular_speed_reference_rad_s",
+    "commanded_armature_voltage_v",
+]
+load_policy = "fixed_nominal_unobserved"
+
+[models.iso_nom]
+name = "ISO-NOM"
+structure = "two_state_isothermal_dc_motor"
+parameter_source = "phase2_nominal"
+thermal_state = false
+
+[models.iso_cal]
+name = "ISO-CAL"
+structure = "two_state_isothermal_dc_motor"
+parameter_source = "single_global_train_fit"
+thermal_state = false
+calibrated_parameters = [
+    "effective_resistance_ohm",
+    "viscous_friction_n_m_s_per_rad",
+]
+fixed_parameters = [
+    "armature_inductance_h",
+    "back_emf_constant_v_s_per_rad",
+    "torque_constant_n_m_per_a",
+    "inertia_kg_m2",
+    "default_load_torque_n_m",
+]
+
+[calibration]
+fit_split = "train"
+trajectory_policy = "all_whole_train_trajectories"
+method = "continuous_midpoint_linear_least_squares"
+selection_policy = "single_locked_fit_no_validation_tuning"
+temperature_used = false
+load_torque_used = false
+minimum_regressor_energy = 1.0e-10
+effective_resistance_ohm_bounds = [0.6, 2.4]
+viscous_friction_n_m_s_per_rad_bounds = [0.0005, 0.008]
+
+[evaluation]
+splits = ["validation", "id_test", "ood_test"]
+normalization = "phase4_train_only_observation_std"
+one_step_horizon_s = 0.001
+short_rollout_horizon_s = 0.1
+medium_rollout_horizon_s = 1.0
+long_rollout_horizon_s = 10.0
+cold_initial_temperature_max_c = 35.0
+hot_initial_temperature_min_c = 75.0
+runtime_repeats = 3
+
+[validation]
+required_checks = [
+    "models_share_temperature_free_interface",
+    "iso_nom_matches_phase2_nominal_parameters",
+    "calibration_uses_train_only_model_view",
+    "checkpoint_is_single_global_and_dataset_bound",
+    "evaluation_splits_never_select_parameters",
+    "required_metrics_are_finite",
+]

@@ -1,0 +1,203 @@
+{
+  "calibrated_parameters": {
+    "effective_resistance_ohm": 1.3685785798153354,
+    "viscous_friction_n_m_s_per_rad": 0.002000248834679419
+  },
+  "checks": [
+    {
+      "criterion": "both models expose exactly [current, speed] plus applied voltage",
+      "metrics": {
+        "controls": [
+          "armature_voltage_v"
+        ],
+        "observations": [
+          "armature_current_a",
+          "angular_speed_rad_s"
+        ],
+        "thermal_state_present": false
+      },
+      "name": "models_share_temperature_free_interface",
+      "passed": true
+    },
+    {
+      "criterion": "ISO-NOM is an unchanged projection of Phase-2 nominal parameters",
+      "metrics": {
+        "armature_inductance_h": 0.003,
+        "back_emf_constant_v_s_per_rad": 0.08,
+        "default_load_torque_n_m": 0.15,
+        "effective_resistance_ohm": 1.2,
+        "inertia_kg_m2": 0.002,
+        "torque_constant_n_m_per_a": 0.08,
+        "viscous_friction_n_m_s_per_rad": 0.002
+      },
+      "name": "iso_nom_matches_phase2_nominal_parameters",
+      "passed": true
+    },
+    {
+      "criterion": "fit uses every whole train trajectory through [i, speed, voltage]",
+      "metrics": {
+        "allowed_fit_features": [
+          "armature_current_a",
+          "angular_speed_rad_s",
+          "armature_voltage_v"
+        ],
+        "fit_split": "train",
+        "fit_trajectory_count": 224,
+        "load_torque_used": false,
+        "temperature_used": false
+      },
+      "name": "calibration_uses_train_only_model_view",
+      "passed": true
+    },
+    {
+      "criterion": "one global ISO-CAL checkpoint is bound to this dataset fingerprint",
+      "metrics": {
+        "dataset_fingerprint": "d4dbf5b72521f29006f9a5ac802115ca83505d0ec08845490580899e7a7df070",
+        "global_parameter_sets": 1,
+        "model_name": "ISO-CAL"
+      },
+      "name": "checkpoint_is_single_global_and_dataset_bound",
+      "passed": true
+    },
+    {
+      "criterion": "validation, ID, and OOD trajectories never alter ISO-CAL",
+      "metrics": {
+        "evaluation_splits": [
+          "validation",
+          "id_test",
+          "ood_test"
+        ],
+        "selection_policy": "single_locked_fit_no_validation_tuning"
+      },
+      "name": "evaluation_splits_never_select_parameters",
+      "passed": true
+    },
+    {
+      "criterion": "one-step, short/medium/long, cold/hot, and runtime metrics are finite",
+      "metrics": {
+        "ISO-CAL": {
+          "one_step_splits": [
+            "id_test",
+            "ood_test",
+            "validation"
+          ],
+          "rollout_splits": [
+            "id_test",
+            "ood_test",
+            "validation"
+          ],
+          "runtime_transitions_per_s": 159927.2477094525
+        },
+        "ISO-NOM": {
+          "one_step_splits": [
+            "id_test",
+            "ood_test",
+            "validation"
+          ],
+          "rollout_splits": [
+            "id_test",
+            "ood_test",
+            "validation"
+          ],
+          "runtime_transitions_per_s": 157908.44054158937
+        }
+      },
+      "name": "required_metrics_are_finite",
+      "passed": true
+    }
+  ],
+  "dataset_fingerprint": "d4dbf5b72521f29006f9a5ac802115ca83505d0ec08845490580899e7a7df070",
+  "metrics": {
+    "ISO-CAL": {
+      "long_rollout_regime_nrmse": {
+        "cold": 0.11269964613253042,
+        "hot": 0.12805190440788658
+      },
+      "model_name": "ISO-CAL",
+      "one_step_channel_nrmse": {
+        "id_test": {
+          "angular_speed_rad_s": 2.6444929969434108e-05,
+          "armature_current_a": 0.020917575202455425
+        },
+        "ood_test": {
+          "angular_speed_rad_s": 0.000576016635229357,
+          "armature_current_a": 0.03207517881243623
+        },
+        "validation": {
+          "angular_speed_rad_s": 2.7638522141274274e-05,
+          "armature_current_a": 0.02186304067342587
+        }
+      },
+      "one_step_nrmse": {
+        "id_test": 0.014790971091931374,
+        "ood_test": 0.02268423341237057,
+        "validation": 0.015459516670578355
+      },
+      "rollout_nrmse": {
+        "id_test": {
+          "long": 0.04117074748886857,
+          "medium": 0.049084405674637795,
+          "short": 0.0549926535026963
+        },
+        "ood_test": {
+          "long": 0.194145382359319,
+          "medium": 0.15873025903238525,
+          "short": 0.08161626923598543
+        },
+        "validation": {
+          "long": 0.042699321191191165,
+          "medium": 0.04844166372921178,
+          "short": 0.05496777008856154
+        }
+      },
+      "runtime_transitions_per_s": 159927.2477094525
+    },
+    "ISO-NOM": {
+      "long_rollout_regime_nrmse": {
+        "cold": 0.11114764232669054,
+        "hot": 0.18906359937640674
+      },
+      "model_name": "ISO-NOM",
+      "one_step_channel_nrmse": {
+        "id_test": {
+          "angular_speed_rad_s": 6.37740412413442e-05,
+          "armature_current_a": 0.05086718672617422
+        },
+        "ood_test": {
+          "angular_speed_rad_s": 0.000592306625126961,
+          "armature_current_a": 0.07002477184644589
+        },
+        "validation": {
+          "angular_speed_rad_s": 6.7463614985428e-05,
+          "armature_current_a": 0.05380986705069785
+        }
+      },
+      "one_step_nrmse": {
+        "id_test": 0.03596856094260522,
+        "ood_test": 0.04951676230977228,
+        "validation": 0.038049351790491286
+      },
+      "rollout_nrmse": {
+        "id_test": {
+          "long": 0.09782648492578065,
+          "medium": 0.10457321614264434,
+          "short": 0.12190250309134408
+        },
+        "ood_test": {
+          "long": 0.23119205521001202,
+          "medium": 0.20400582292238895,
+          "short": 0.1584028408074835
+        },
+        "validation": {
+          "long": 0.10299746746022008,
+          "medium": 0.10660881280457077,
+          "short": 0.11928224334333286
+        }
+      },
+      "runtime_transitions_per_s": 157908.44054158937
+    }
+  },
+  "passed": true,
+  "phase": 5,
+  "validation": "physical_isothermal_baselines"
+}
