@@ -1,0 +1,86 @@
+schema_version = 1
+
+[phase]
+number = 1
+name = "r2dn_interface_design"
+status = "locked"
+
+[interface]
+backend = "nic_barbara_contracting_r2dn"
+temporal_representation = "discrete_recurrent_state_space"
+step_semantics = "regressor_at_k_predicts_observation_at_k_plus_1"
+sequence_layout = "time_batch_feature"
+state_layout = "batch_latent"
+observation_features = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+]
+control_features = ["armature_voltage_v"]
+regressor_features = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+    "armature_voltage_v",
+]
+target_features = [
+    "armature_current_a",
+    "angular_speed_rad_s",
+]
+input_size = 3
+output_size = 2
+minimum_latent_size = 3
+pilot_latent_size = 4
+
+[initialization]
+method = "zero_carry_then_observation_burn_in"
+burn_in_content = "measured_y_k_and_applied_u_k"
+burn_in_steps_policy = "derive_after_phase2_time_constant_analysis"
+minimum_burn_in_steps = 1
+reset_between_trajectories = true
+
+[rollout]
+mode = "autoregressive"
+initial_observation = "last_measured_observation_after_burn_in"
+future_observation_source = "model_prediction_only"
+future_control_source = "known_applied_control_sequence"
+teacher_forcing_after_burn_in = false
+
+[contractivity]
+formal_scope = "latent_state_for_identical_external_regressor_sequences"
+control_input_effect = "does_not_change_same_input_contraction_certificate"
+parameterization_test = "positive_definite_residual_of_equation_20"
+autoregressive_scope = "requires_empirical_rollout_test_not_claimed_by_same_input_certificate"
+upstream_theorem = "R2DN_v2_proposition_1_and_equations_20_to_22"
+
+[data]
+storage_format = "npz_phase4_candidate"
+observation_array = "observations[T_plus_1,B,2]"
+control_array = "controls[T,B,1]"
+regressor_array = "concat(observations[:-1],controls)[T,B,3]"
+target_array = "observations[1:][T,B,2]"
+raw_full_state_array = "full_states[T_plus_1,B,3]"
+temperature_policy = "raw_and_evaluation_only_never_model_view"
+dtype = "float32"
+
+[checkpoint]
+directory_format = "r2dn_checkpoint_v1"
+required_files = [
+    "manifest.json",
+    "parameters.msgpack",
+    "normalization.npz",
+]
+manifest_schema_version = 1
+parameter_format = "flax_msgpack"
+normalization_format = "numpy_npz"
+
+[upstream]
+repository = "https://github.com/nic-barbara/R2DN"
+commit = "5e65ac9bb5a057d41232162133ac1454865b965b"
+module = "robustnn.r2dn"
+class_name = "ContractingR2DN"
+license = "MIT"
+required_methods = [
+    "initialize_carry",
+    "simulate_sequence",
+    "direct_to_explicit",
+    "explicit_call",
+]

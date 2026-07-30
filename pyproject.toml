@@ -4,20 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "r2dn-dc-motor-control"
-version = "0.1.0"
+version = "0.2.0"
 description = "R2DN world-model experiments for electrothermal DC-motor control"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "numpy>=2.0",
+]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
 ]
+r2dn = [
+    "flax==0.10.4",
+    "jax==0.5.3",
+    "robustnn @ git+https://github.com/nic-barbara/R2DN.git@5e65ac9bb5a057d41232162133ac1454865b965b",
+]
 
 [project.scripts]
 validate-phase0 = "r2dn_dc_motor.validate_phase0:main"
+validate-phase1 = "r2dn_dc_motor.validate_phase1:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -25,6 +33,9 @@ where = ["src"]
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+markers = [
+    "r2dn_integration: requires the optional official R2DN/JAX dependency",
+]
 
 [tool.ruff]
 line-length = 100
@@ -32,4 +43,3 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
-
