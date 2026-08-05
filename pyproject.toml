@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "r2dn-dc-motor-control"
-version = "0.12.0"
+version = "0.14.0"
 description = "R2DN world-model experiments for electrothermal DC-motor control"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -57,7 +57,10 @@ validate-phase6b = "r2dn_dc_motor.validate_phase6b:main"
 validate-phase6d = "r2dn_dc_motor.validate_phase6d:main"
 validate-phase6e = "r2dn_dc_motor.validate_phase6e:main"
 validate-phase6f = "r2dn_dc_motor.validate_phase6f:main"
+validate-phase7 = "r2dn_dc_motor.validate_phase7:main"
 compare-r2dn-rk4 = "r2dn_dc_motor.compare_r2dn_rk4:main"
+compare-hidden-thermal-models = "r2dn_dc_motor.compare_hidden_thermal_models:main"
+evaluate-thermal-test-bank = "r2dn_dc_motor.evaluate_thermal_test_bank:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -75,6 +78,7 @@ markers = [
     "phase6d_gate: runs a tiny controlled R2DN accuracy ablation",
     "phase6e_gate: runs a tiny full-curriculum larger-latent search",
     "phase6f_gate: runs a tiny controlled optimizer-floor ablation",
+    "phase7_gate: runs the pure-R2DN broadband accuracy study",
 ]
 
 [tool.ruff]

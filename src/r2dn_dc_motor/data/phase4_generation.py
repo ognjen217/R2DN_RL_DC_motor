@@ -505,7 +505,13 @@ def _prbs(
     low, high = _pair(spec.excitation["open_loop_amplitude_v"])
     amplitude = float(rng.uniform(low, high))
     if novel:
-        return _chirp(amplitude, steps, dt, phase=float(rng.uniform(0.0, 2.0 * np.pi)))
+        return _chirp(
+            amplitude,
+            steps,
+            dt,
+            phase=float(rng.uniform(0.0, 2.0 * np.pi)),
+            frequency_range_hz=_chirp_frequency_range(spec),
+        )
     hold = float(rng.uniform(*_pair(spec.excitation["prbs_hold_s"])))
     hold_steps = max(1, round(hold / dt))
     chunks = math.ceil(steps / hold_steps)
@@ -522,7 +528,13 @@ def _piecewise_voltage(
 ) -> FloatArray:
     if novel:
         amplitude = float(rng.uniform(*_pair(spec.excitation["open_loop_amplitude_v"])))
-        return _chirp(amplitude, steps, dt, phase=float(rng.uniform(0.0, 2.0 * np.pi)))
+        return _chirp(
+            amplitude,
+            steps,
+            dt,
+            phase=float(rng.uniform(0.0, 2.0 * np.pi)),
+            frequency_range_hz=_chirp_frequency_range(spec),
+        )
     low_hold, high_hold = _pair(spec.excitation["piecewise_hold_s"])
     amplitude = float(max(_pair(spec.excitation["open_loop_amplitude_v"])))
     values: list[float] = []
@@ -542,7 +554,13 @@ def _step_ramp(
 ) -> FloatArray:
     amplitude = float(max(_pair(spec.excitation["open_loop_amplitude_v"])))
     if novel:
-        return _chirp(amplitude, steps, dt, phase=float(rng.uniform(0.0, 2.0 * np.pi)))
+        return _chirp(
+            amplitude,
+            steps,
+            dt,
+            phase=float(rng.uniform(0.0, 2.0 * np.pi)),
+            frequency_range_hz=_chirp_frequency_range(spec),
+        )
     segment_steps = max(2, round(float(rng.uniform(0.4, 1.0)) / dt))
     output = np.empty(steps, dtype=np.float64)
     previous = 0.0
@@ -575,9 +593,25 @@ def _multisine(
 ) -> FloatArray:
     amplitude = float(rng.uniform(*_pair(spec.excitation["open_loop_amplitude_v"])))
     if novel:
-        return _chirp(amplitude, steps, dt, phase=float(rng.uniform(0.0, 2.0 * np.pi)))
+        return _chirp(
+            amplitude,
+            steps,
+            dt,
+            phase=float(rng.uniform(0.0, 2.0 * np.pi)),
+            frequency_range_hz=_chirp_frequency_range(spec),
+        )
     time = np.arange(steps, dtype=np.float64) * dt
-    frequencies = np.asarray([0.07, 0.17, 0.43, 0.91], dtype=np.float64)
+    if "multisine_frequency_hz" in spec.excitation:
+        low, high = _pair(spec.excitation["multisine_frequency_hz"])
+        component_low, component_high = (
+            int(value) for value in spec.excitation["multisine_components"]
+        )
+        components = int(rng.integers(component_low, component_high + 1))
+        frequencies = np.sort(
+            np.exp(rng.uniform(np.log(low), np.log(high), size=components))
+        )
+    else:
+        frequencies = np.asarray([0.07, 0.17, 0.43, 0.91], dtype=np.float64)
     phases = rng.uniform(0.0, 2.0 * np.pi, size=frequencies.size)
     signal = np.sum(
         np.sin(2.0 * np.pi * time[:, None] * frequencies + phases),
@@ -595,22 +629,68 @@ def _heating_cooling(
     novel: bool,
 ) -> FloatArray:
     amplitude = float(max(_pair(spec.excitation["open_loop_amplitude_v"])))
-    heating_steps = round(0.6 * steps)
-    if novel:
-        heating = _chirp(
-            amplitude,
-            heating_steps,
+    if bool(spec.excitation.get("heating_cooling_reheat", False)):
+        first_heating_steps = round(0.35 * steps)
+        cooling_steps = round(0.30 * steps)
+        reheating_steps = steps - first_heating_steps - cooling_steps
+        first_heating = _heating_signal(
+            rng,
+            spec,
+            first_heating_steps,
             dt,
-            phase=float(rng.uniform(0.0, 2.0 * np.pi)),
+            amplitude=amplitude,
+            novel=novel,
         )
-    else:
-        hold_steps = max(1, round(float(rng.uniform(0.03, 0.08)) / dt))
-        chunks = math.ceil(heating_steps / hold_steps)
-        signs = rng.choice(np.asarray([-1.0, 1.0]), size=chunks)
-        heating = np.repeat(signs * amplitude, hold_steps)[:heating_steps]
+        reheating = _heating_signal(
+            rng,
+            spec,
+            reheating_steps,
+            dt,
+            amplitude=0.85 * amplitude,
+            novel=novel,
+        )
+        return np.concatenate(
+            (
+                first_heating,
+                np.zeros(cooling_steps, dtype=np.float64),
+                reheating,
+            )
+        )
+    heating_steps = round(0.6 * steps)
+    heating = _heating_signal(
+        rng,
+        spec,
+        heating_steps,
+        dt,
+        amplitude=amplitude,
+        novel=novel,
+    )
     return np.concatenate(
         (heating, np.zeros(steps - heating_steps, dtype=np.float64))
     )
+
+
+def _heating_signal(
+    rng: np.random.Generator,
+    spec: Phase4Spec,
+    steps: int,
+    dt: float,
+    *,
+    amplitude: float,
+    novel: bool,
+) -> FloatArray:
+    if novel:
+        return _chirp(
+            amplitude,
+            steps,
+            dt,
+            phase=float(rng.uniform(0.0, 2.0 * np.pi)),
+            frequency_range_hz=_chirp_frequency_range(spec),
+        )
+    hold_steps = max(1, round(float(rng.uniform(0.03, 0.08)) / dt))
+    chunks = math.ceil(steps / hold_steps)
+    signs = rng.choice(np.asarray([-1.0, 1.0]), size=chunks)
+    return np.repeat(signs * amplitude, hold_steps)[:steps]
 
 
 def _speed_reference(
@@ -655,7 +735,13 @@ def _identification_signal(
 ) -> FloatArray:
     amplitude = float(rng.uniform(*_pair(spec.excitation["identification_amplitude_v"])))
     if novel:
-        return _chirp(amplitude, steps, dt, phase=float(rng.uniform(0.0, 2.0 * np.pi)))
+        return _chirp(
+            amplitude,
+            steps,
+            dt,
+            phase=float(rng.uniform(0.0, 2.0 * np.pi)),
+            frequency_range_hz=_chirp_frequency_range(spec),
+        )
     time = np.arange(steps, dtype=np.float64) * dt
     return amplitude * (
         0.6 * np.sin(2.0 * np.pi * 0.7 * time + rng.uniform(0.0, 2.0 * np.pi))
@@ -663,11 +749,27 @@ def _identification_signal(
     )
 
 
-def _chirp(amplitude: float, steps: int, dt: float, *, phase: float) -> FloatArray:
+def _chirp(
+    amplitude: float,
+    steps: int,
+    dt: float,
+    *,
+    phase: float,
+    frequency_range_hz: tuple[float, float] = (0.05, 1.25),
+) -> FloatArray:
     time = np.arange(steps, dtype=np.float64) * dt
     duration = max(steps * dt, dt)
-    chirp_phase = 2.0 * np.pi * (0.05 * time + 0.5 * 1.2 / duration * time**2)
+    start_hz, end_hz = frequency_range_hz
+    sweep_hz = end_hz - start_hz
+    chirp_phase = 2.0 * np.pi * (
+        start_hz * time + 0.5 * sweep_hz / duration * time**2
+    )
     return amplitude * np.sin(chirp_phase + phase)
+
+
+def _chirp_frequency_range(spec: Phase4Spec) -> tuple[float, float]:
+    raw = spec.excitation.get("chirp_frequency_hz", (0.05, 1.25))
+    return _pair(raw)
 
 
 def _parameter_arrays(
@@ -850,6 +952,7 @@ def _build_manifest(
         "schema_version": 1,
         "dataset_id": spec.dataset["dataset_id"],
         "dataset_version": spec.dataset["version"],
+        "phase4_spec_sha256": canonical_sha256(asdict(spec)),
         "profile": profile.name,
         "generator": spec.dataset["generator"],
         "simulator": {
@@ -876,6 +979,7 @@ def _build_manifest(
             "names": list(SPLIT_NAMES),
         },
         "excitation_families": list(EXCITATION_FAMILIES),
+        "excitation_policy": dict(spec.excitation),
         "split_counts": split_counts,
         "trajectory_count": len(records),
         "transition_count": transition_count,

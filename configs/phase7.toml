@@ -1,0 +1,223 @@
+schema_version = 1
+
+[phase]
+number = 7
+name = "pure_r2dn_hidden_thermal_identification"
+status = "implemented"
+
+[interface]
+observation = ["armature_current_a", "angular_speed_rad_s"]
+control = ["armature_voltage_v"]
+hidden_evaluation_only = ["winding_temperature_c"]
+forbidden_training_features = [
+    "winding_temperature_c",
+    "load_torque_n_m",
+    "angular_speed_reference_rad_s",
+    "commanded_armature_voltage_v",
+]
+
+[dataset]
+required_dataset_id = "full_electrothermal_dc_motor_broadband"
+required_version = "2.0.0"
+required_frequency_range_hz = [0.05, 4.0]
+minimum_default_duration_s = 60.0
+minimum_heating_cooling_duration_s = 120.0
+normalization_fit_split = "train"
+
+[training]
+model_type = "ContractingR2DN"
+latent_size = 16
+initialization = "long_memory"
+polar_parameterization = true
+selection_split = "validation"
+selection_metric = "median_validation_free_rollout_nrmse"
+selection_mode = "min"
+near_tie_relative_tolerance = 0.03
+increment_scale_fit_split = "train"
+absolute_state_output_retained = true
+optimizer_schedule = "constant"
+target_combined_nrmse = 0.05
+
+[[variants]]
+name = "broadband_standard"
+curriculum = "base"
+feature_size = 32
+hidden_sizes = [32, 32]
+delta_weight = 0.0
+use_multihorizon_loss = false
+
+[[variants]]
+name = "broadband_delta_multiscale"
+curriculum = "multiscale"
+feature_size = 32
+hidden_sizes = [32, 32]
+delta_weight = 0.01
+use_multihorizon_loss = true
+
+[[variants]]
+name = "broadband_delta_multiscale_wide"
+curriculum = "multiscale"
+feature_size = 64
+hidden_sizes = [64, 64]
+delta_weight = 0.01
+use_multihorizon_loss = true
+
+[objective]
+increment_standard_deviation_floor = 1.0e-6
+rollout_horizon_steps = [1, 10, 100, 1000, 5000]
+rollout_horizon_weights = [0.10, 0.15, 0.20, 0.25, 0.30]
+
+[profiles.ci]
+seeds = [7]
+burn_in_steps = 20
+validation_horizon_steps = 50
+validation_window_seed = 77001
+validation_windows = 2
+history_log_interval = 1
+
+[[profiles.ci.base_stages]]
+name = "one_step"
+updates = 1
+rollout_steps = 1
+batch_size = 2
+one_step_weight = 1.0
+rollout_weight = 0.0
+reconstruction_weight = 0.10
+
+[[profiles.ci.base_stages]]
+name = "short_rollout"
+updates = 1
+rollout_steps = 8
+batch_size = 2
+one_step_weight = 0.5
+rollout_weight = 0.5
+reconstruction_weight = 0.05
+
+[[profiles.ci.multiscale_stages]]
+name = "one_step"
+updates = 1
+rollout_steps = 1
+batch_size = 2
+one_step_weight = 1.0
+rollout_weight = 0.0
+reconstruction_weight = 0.10
+
+[[profiles.ci.multiscale_stages]]
+name = "short_rollout"
+updates = 1
+rollout_steps = 8
+batch_size = 2
+one_step_weight = 0.5
+rollout_weight = 0.5
+reconstruction_weight = 0.05
+
+[profiles.final]
+seeds = [17, 29, 43]
+burn_in_steps = 250
+validation_horizon_steps = 5000
+validation_window_seed = 77002
+validation_windows = 8
+history_log_interval = 50
+
+[[profiles.final.base_stages]]
+name = "one_step"
+updates = 300
+rollout_steps = 1
+batch_size = 256
+one_step_weight = 1.0
+rollout_weight = 0.0
+reconstruction_weight = 0.10
+
+[[profiles.final.base_stages]]
+name = "short_rollout"
+updates = 700
+rollout_steps = 10
+batch_size = 128
+one_step_weight = 0.50
+rollout_weight = 0.50
+reconstruction_weight = 0.05
+
+[[profiles.final.base_stages]]
+name = "medium_rollout"
+updates = 1000
+rollout_steps = 100
+batch_size = 64
+one_step_weight = 0.25
+rollout_weight = 0.75
+reconstruction_weight = 0.02
+
+[[profiles.final.base_stages]]
+name = "long_rollout"
+updates = 1000
+rollout_steps = 1000
+batch_size = 8
+one_step_weight = 0.10
+rollout_weight = 0.90
+reconstruction_weight = 0.01
+
+[[profiles.final.multiscale_stages]]
+name = "one_step"
+updates = 300
+rollout_steps = 1
+batch_size = 256
+one_step_weight = 1.0
+rollout_weight = 0.0
+reconstruction_weight = 0.10
+
+[[profiles.final.multiscale_stages]]
+name = "short_rollout"
+updates = 700
+rollout_steps = 10
+batch_size = 128
+one_step_weight = 0.50
+rollout_weight = 0.50
+reconstruction_weight = 0.05
+
+[[profiles.final.multiscale_stages]]
+name = "medium_rollout"
+updates = 1000
+rollout_steps = 100
+batch_size = 64
+one_step_weight = 0.25
+rollout_weight = 0.75
+reconstruction_weight = 0.02
+
+[[profiles.final.multiscale_stages]]
+name = "long_rollout"
+updates = 1000
+rollout_steps = 1000
+batch_size = 8
+one_step_weight = 0.10
+rollout_weight = 0.90
+reconstruction_weight = 0.01
+
+[[profiles.final.multiscale_stages]]
+name = "thermal_rollout"
+updates = 500
+rollout_steps = 5000
+batch_size = 2
+one_step_weight = 0.05
+rollout_weight = 0.95
+reconstruction_weight = 0.005
+
+[test_bank]
+selection_policy = "deterministic_temperature_stratified_whole_trajectory_anchors"
+categories = ["id", "excitation_ood", "thermal_ood"]
+scenario_names = ["prbs", "sine", "multisine"]
+horizons_s = [1.0, 10.0, 100.0, 1000.0]
+ci_cases_per_category = 1
+final_cases_per_category = 3
+anchor_seed = 78001
+evaluation_used_for_selection = false
+
+[validation]
+required_checks = [
+    "broadband_dataset_is_full_only_and_temperature_hidden",
+    "increment_statistics_use_train_only_model_view",
+    "all_variants_and_seeds_are_evaluated",
+    "absolute_state_output_and_contracting_parameterization_are_retained",
+    "all_contractivity_margins_are_positive",
+    "selection_uses_validation_only",
+    "test_bank_is_excluded_from_selection",
+    "final_report_includes_mean_median_worst_and_divergence",
+]

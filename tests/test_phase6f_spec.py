@@ -53,6 +53,9 @@ def test_phase6f_rejects_phase6e_selection_scenario_reuse() -> None:
         phase6e=phase6e,
     )
     raw = _raw_spec(spec)
+    raw["profiles"]["final"]["multisine_scenarios"] = list(
+        raw["profiles"]["final"]["multisine_scenarios"]
+    )
     raw["profiles"]["final"]["multisine_scenarios"][0] = asdict(
         phase6e.profile("final").multisine_scenarios[0]
     )

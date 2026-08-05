@@ -156,8 +156,9 @@ class Phase4Spec:
             errors.append("Phase-4 storage must preserve one NPZ per whole trajectory")
         if self.dataset.get("dtype") != "float32":
             errors.append("Phase-4 persisted arrays must use float32")
-        if self.dataset.get("version") != "1.0.0":
-            errors.append("Phase-4 dataset version must be 1.0.0")
+        dataset_version = str(self.dataset.get("version", ""))
+        if dataset_version not in {"1.0.0", "2.0.0"}:
+            errors.append("Phase-4 dataset version must be 1.0.0 or 2.0.0")
         if not math.isclose(
             float(self.dataset.get("control_period_s", -1.0)),
             phase2.integration_settings.control_period_s,
@@ -213,6 +214,8 @@ class Phase4Spec:
             errors.append("excitation family catalog changed")
         if self.excitation.get("anti_windup") != "conditional_integration":
             errors.append("closed-loop dataset trajectories require conditional anti-windup")
+        if dataset_version == "2.0.0":
+            errors.extend(self._validate_broadband_excitation())
 
         if set(self.profiles) != {"ci", "final"}:
             errors.append("Phase 4 must define exactly ci and final profiles")
@@ -236,6 +239,34 @@ class Phase4Spec:
 
         if errors:
             raise SpecValidationError("\n".join(f"- {error}" for error in errors))
+
+    def _validate_broadband_excitation(self) -> list[str]:
+        """Validate the optional v2 excitation contract used for Phase 7."""
+
+        errors: list[str] = []
+        try:
+            frequency_low, frequency_high = _pair(
+                self.excitation["multisine_frequency_hz"]
+            )
+            chirp_low, chirp_high = _pair(self.excitation["chirp_frequency_hz"])
+            component_low, component_high = (
+                int(value) for value in self.excitation["multisine_components"]
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            return [f"invalid broadband excitation contract: {error}"]
+        if not (0.0 < frequency_low < frequency_high):
+            errors.append("multisine_frequency_hz must be a positive ordered range")
+        if frequency_low > 0.05 or frequency_high < 4.0:
+            errors.append("v2 multisine coverage must include at least 0.05--4 Hz")
+        if not (0.0 < chirp_low < chirp_high):
+            errors.append("chirp_frequency_hz must be a positive ordered range")
+        if not (1 <= component_low <= component_high):
+            errors.append("multisine_components must contain ordered positive integers")
+        if self.excitation.get("frequency_sampling") != "log_uniform_per_trajectory":
+            errors.append("v2 frequencies must be sampled log-uniformly per trajectory")
+        if self.excitation.get("heating_cooling_reheat") is not True:
+            errors.append("v2 data must include heating, cooling, and reheating")
+        return errors
 
     def _validate_ranges(
         self,

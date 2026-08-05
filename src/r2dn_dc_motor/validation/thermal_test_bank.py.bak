@@ -1,0 +1,580 @@
+"""Deterministic multi-trajectory hidden-thermal model evaluation."""
+
+from __future__ import annotations
+
+import json
+import math
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from statistics import median
+from typing import Any
+
+import numpy as np
+
+from r2dn_dc_motor.data import Phase4Dataset
+from r2dn_dc_motor.models.isothermal_calibration import IsothermalCalibrationCheckpoint
+from r2dn_dc_motor.models.jax_runtime import JAXRuntime
+from r2dn_dc_motor.phase2_spec import Phase2Spec
+from r2dn_dc_motor.phase6b_spec import Phase6BSpec
+from r2dn_dc_motor.phase7_spec import TEST_BANK_CATEGORIES, Phase7Spec
+from r2dn_dc_motor.validation.hidden_thermal_benchmark import run_isothermal_trace
+from r2dn_dc_motor.validation.phase5 import build_isothermal_models
+from r2dn_dc_motor.validation.r2dn_rk4_benchmark import (
+    AccuracyMetrics,
+    build_benchmark_anchor,
+    build_voltage_trace,
+    calculate_accuracy,
+    resolve_scenario,
+    run_r2dn_trace,
+    run_rk4_trace,
+)
+
+ISO_MODEL_NAMES = ("ISO-NOM", "ISO-CAL")
+
+
+@dataclass(frozen=True)
+class ThermalTestCase:
+    case_id: str
+    category: str
+    split: str
+    trajectory_id: str
+    stop_step: int
+    scenario_name: str
+    excitation_family: str
+    ood_axis: str | None
+    anchor_temperature_c: float
+
+
+@dataclass(frozen=True)
+class R2DNCandidate:
+    name: str
+    checkpoint: Any
+
+
+@dataclass(frozen=True)
+class ThermalTestBankReport:
+    schema_version: int
+    passed: bool
+    benchmark: str
+    evaluation_dataset_fingerprint: str
+    duration_s: float
+    control_period_s: float
+    horizons_s: tuple[float, ...]
+    cases: tuple[dict[str, Any], ...]
+    aggregate: dict[str, Any]
+    interface_audit: dict[str, Any]
+    runtime: dict[str, Any]
+    interpretation: dict[str, str]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    def summary(self) -> str:
+        status = "PASS" if self.passed else "FAIL"
+        lines = [
+            f"THERMAL TEST BANK: {status}",
+            f"cases: {len(self.cases)}",
+            f"horizons: {', '.join(f'{value:g}' for value in self.horizons_s)} s",
+            "full-horizon median / worst combined NRMSE:",
+        ]
+        key = _horizon_key(self.horizons_s[-1])
+        for name, values in self.aggregate["overall"][key].items():
+            lines.append(
+                f"  {name}: {values['median_combined_nrmse']:.6g} / "
+                f"{values['worst_combined_nrmse']:.6g}"
+            )
+        return "\n".join(lines)
+
+
+def select_thermal_test_cases(
+    dataset: Phase4Dataset,
+    *,
+    phase7: Phase7Spec,
+    profile_name: str,
+    minimum_burn_in_steps: int,
+) -> tuple[ThermalTestCase, ...]:
+    """Select temperature-stratified, trajectory-disjoint test anchors."""
+
+    if minimum_burn_in_steps < 1:
+        raise ValueError("minimum burn-in must be positive")
+    if profile_name not in {"ci", "final"}:
+        raise ValueError("test-bank profile must be ci or final")
+    count = int(phase7.test_bank[f"{profile_name}_cases_per_category"])
+    scenarios = tuple(str(value) for value in phase7.test_bank["scenario_names"])
+    category_ids = {
+        "id": dataset.trajectory_ids("id_test"),
+        "excitation_ood": tuple(
+            trajectory_id
+            for trajectory_id in dataset.trajectory_ids("ood_test")
+            if dataset.record(trajectory_id).get("ood_axis") == "novel_profile"
+        ),
+        "thermal_ood": tuple(
+            trajectory_id
+            for trajectory_id in dataset.trajectory_ids("ood_test")
+            if dataset.record(trajectory_id).get("ood_axis")
+            == "higher_initial_temperature"
+        ),
+    }
+    cases: list[ThermalTestCase] = []
+    for category_index, category in enumerate(TEST_BANK_CATEGORIES):
+        options = _anchor_options(
+            dataset,
+            category_ids[category],
+            minimum_burn_in_steps=minimum_burn_in_steps,
+        )
+        selected = _temperature_stratified_options(options, count=count)
+        for index, option in enumerate(selected):
+            record = dataset.record(option["trajectory_id"])
+            scenario = scenarios[(category_index + index) % len(scenarios)]
+            cases.append(
+                ThermalTestCase(
+                    case_id=f"{category}-{index + 1:02d}",
+                    category=category,
+                    split=str(record["split"]),
+                    trajectory_id=str(option["trajectory_id"]),
+                    stop_step=int(option["stop_step"]),
+                    scenario_name=scenario,
+                    excitation_family=str(record["excitation_family"]),
+                    ood_axis=(
+                        str(record["ood_axis"])
+                        if record.get("ood_axis") is not None
+                        else None
+                    ),
+                    anchor_temperature_c=float(option["temperature_c"]),
+                )
+            )
+    trajectory_ids = tuple(value.trajectory_id for value in cases)
+    if len(set(trajectory_ids)) != len(trajectory_ids):
+        raise RuntimeError("test-bank selection reused a whole trajectory")
+    return tuple(cases)
+
+
+def run_thermal_test_bank(
+    *,
+    evaluation_dataset: Phase4Dataset,
+    candidates: tuple[R2DNCandidate, ...],
+    calibration: IsothermalCalibrationCheckpoint,
+    phase2: Phase2Spec,
+    phase6b: Phase6BSpec,
+    phase7: Phase7Spec,
+    runtime: JAXRuntime,
+    profile_name: str = "final",
+    duration_s: float = 1000.0,
+    chunk_steps: int = 10_000,
+    progress: Any | None = None,
+) -> ThermalTestBankReport:
+    """Evaluate all learned and physical models on one frozen test bank."""
+
+    if not candidates:
+        raise ValueError("at least one R2DN candidate is required")
+    names = tuple(value.name for value in candidates)
+    if len(set(names)) != len(names) or set(names) & set(ISO_MODEL_NAMES):
+        raise ValueError("R2DN candidate names must be unique and not use ISO labels")
+    calibration.validate(evaluation_dataset)
+    period = phase2.integration_settings.control_period_s
+    control_steps = int(round(duration_s / period))
+    if control_steps < 1 or not math.isclose(control_steps * period, duration_s):
+        raise ValueError("duration must contain an integer number of control periods")
+    if chunk_steps < 1 or control_steps % chunk_steps:
+        raise ValueError("chunk_steps must divide the complete test horizon")
+    configured_horizons = tuple(float(value) for value in phase7.test_bank["horizons_s"])
+    horizons = tuple(value for value in configured_horizons if value <= duration_s)
+    if not horizons or not math.isclose(horizons[-1], duration_s):
+        raise ValueError("duration must equal one of the locked cumulative horizons")
+    minimum_burn_in = max(
+        int(value.checkpoint.manifest.burn_in_steps) for value in candidates
+    )
+    cases = select_thermal_test_cases(
+        evaluation_dataset,
+        phase7=phase7,
+        profile_name=profile_name,
+        minimum_burn_in_steps=minimum_burn_in,
+    )
+    iso_models = build_isothermal_models(calibration, phase2)
+    progress = progress or (lambda _: None)
+    case_payloads: list[dict[str, Any]] = []
+    for case in cases:
+        progress(f"{case.case_id}: {case.scenario_name}, T={case.anchor_temperature_c:.3f} C")
+        scenario = resolve_scenario(phase6b, case.scenario_name)
+        voltages = build_voltage_trace(
+            scenario,
+            duration_s=duration_s,
+            control_period_s=period,
+        )
+        reference_anchor = build_benchmark_anchor(
+            evaluation_dataset,
+            trajectory_id=case.trajectory_id,
+            stop_step=case.stop_step,
+            checkpoint=candidates[0].checkpoint,
+        )
+        full = run_rk4_trace(
+            phase2,
+            reference_anchor.initial_full_state,
+            voltages,
+            duration_s=duration_s,
+        )
+        if full.terminated or full.timing.control_steps_completed != control_steps:
+            raise RuntimeError(
+                f"FULL/RK4 terminated in {case.case_id}: {full.termination_reason}"
+            )
+        model_payload: dict[str, Any] = {}
+        for candidate in candidates:
+            anchor = build_benchmark_anchor(
+                evaluation_dataset,
+                trajectory_id=case.trajectory_id,
+                stop_step=case.stop_step,
+                checkpoint=candidate.checkpoint,
+            )
+            try:
+                trace = run_r2dn_trace(
+                    candidate.checkpoint,
+                    anchor,
+                    voltages,
+                    duration_s=duration_s,
+                    chunk_steps=chunk_steps,
+                )
+                accuracy = calculate_accuracy(
+                    trace.observations,
+                    full.observations,
+                    evaluation_dataset.normalization.observation_std,
+                    control_period_s=period,
+                    requested_horizons_s=horizons,
+                )
+                model_payload[candidate.name] = {
+                    "role": "temperature_blind_data_driven_candidate",
+                    "temperature_input": False,
+                    "checkpoint_phase": str(candidate.checkpoint.manifest.phase),
+                    "selected_variant": getattr(
+                        candidate.checkpoint.manifest,
+                        "selected_variant",
+                        None,
+                    ),
+                    "contractivity_margin": (
+                        candidate.checkpoint.manifest.contractivity_margin
+                    ),
+                    "divergent": False,
+                    "timing": asdict(trace.timing),
+                    "accuracy": _accuracy_payload(accuracy),
+                }
+            except (FloatingPointError, RuntimeError, ValueError) as error:
+                model_payload[candidate.name] = {
+                    "role": "temperature_blind_data_driven_candidate",
+                    "temperature_input": False,
+                    "divergent": True,
+                    "error": str(error),
+                    "accuracy": None,
+                }
+        initial_observation = np.asarray(
+            (
+                reference_anchor.initial_full_state.current_a,
+                reference_anchor.initial_full_state.speed_rad_s,
+            ),
+            dtype=np.float64,
+        )
+        for name, model in iso_models.items():
+            try:
+                trace = run_isothermal_trace(
+                    model,
+                    initial_observation,
+                    voltages,
+                    duration_s=duration_s,
+                )
+                accuracy = calculate_accuracy(
+                    trace.observations,
+                    full.observations,
+                    evaluation_dataset.normalization.observation_std,
+                    control_period_s=period,
+                    requested_horizons_s=horizons,
+                )
+                model_payload[name] = {
+                    "role": "temperature_blind_physical_candidate",
+                    "temperature_input": False,
+                    "divergent": False,
+                    "timing": asdict(trace.timing),
+                    "accuracy": _accuracy_payload(accuracy),
+                }
+            except (FloatingPointError, RuntimeError, ValueError) as error:
+                model_payload[name] = {
+                    "role": "temperature_blind_physical_candidate",
+                    "temperature_input": False,
+                    "divergent": True,
+                    "error": str(error),
+                    "accuracy": None,
+                }
+        case_payloads.append(
+            {
+                "case": asdict(case),
+                "reference": {
+                    "name": "FULL/RK4",
+                    "internal_temperature_state": True,
+                    "initial_temperature_c": (
+                        reference_anchor.initial_full_state.temperature_c
+                    ),
+                    "final_temperature_c": float(full.temperatures_c[-1]),
+                    "timing": asdict(full.timing),
+                },
+                "models": model_payload,
+            }
+        )
+    model_names = (*names, *ISO_MODEL_NAMES)
+    aggregate = aggregate_thermal_test_cases(
+        tuple(case_payloads),
+        model_names=model_names,
+        horizons_s=horizons,
+    )
+    interface_audit = {
+        "candidate_observations": ["armature_current_a", "angular_speed_rad_s"],
+        "candidate_control": ["armature_voltage_v"],
+        "candidate_temperature_input": False,
+        "full_reference_internal_temperature_state": True,
+        "iso_cal_temperature_used_during_fit": calibration.temperature_used,
+        "iso_cal_load_torque_used_during_fit": calibration.load_torque_used,
+        "test_bank_used_for_model_selection": False,
+        "passed": not calibration.temperature_used and not calibration.load_torque_used,
+    }
+    divergent = sum(
+        aggregate["model_totals"][name]["divergent_cases"] for name in model_names
+    )
+    return ThermalTestBankReport(
+        schema_version=1,
+        passed=bool(interface_audit["passed"] and divergent == 0),
+        benchmark="multi_trajectory_hidden_thermal_test_bank",
+        evaluation_dataset_fingerprint=evaluation_dataset.fingerprint,
+        duration_s=duration_s,
+        control_period_s=period,
+        horizons_s=horizons,
+        cases=tuple(case_payloads),
+        aggregate=aggregate,
+        interface_audit=interface_audit,
+        runtime={"jax": runtime.to_dict()},
+        interpretation={
+            "selection": (
+                "All cases are held-out whole-trajectory anchors and never participate "
+                "in R2DN or ISO-CAL parameter selection."
+            ),
+            "statistics": (
+                "Mean, median, and worst-case errors are reported across cases; a single "
+                "canonical trajectory is not treated as general evidence."
+            ),
+            "claim_scope": (
+                "The bank separately exposes ID, excitation-OOD, and thermal-OOD behavior "
+                "while every candidate remains temperature-blind."
+            ),
+        },
+    )
+
+
+def aggregate_thermal_test_cases(
+    cases: tuple[dict[str, Any], ...],
+    *,
+    model_names: tuple[str, ...],
+    horizons_s: tuple[float, ...],
+) -> dict[str, Any]:
+    if not cases:
+        raise ValueError("cannot aggregate an empty test bank")
+    overall = _aggregate_group(cases, model_names=model_names, horizons_s=horizons_s)
+    by_category = {
+        category: _aggregate_group(
+            tuple(value for value in cases if value["case"]["category"] == category),
+            model_names=model_names,
+            horizons_s=horizons_s,
+        )
+        for category in TEST_BANK_CATEGORIES
+    }
+    totals = {
+        name: {
+            "case_count": len(cases),
+            "divergent_cases": sum(
+                bool(value["models"][name]["divergent"]) for value in cases
+            ),
+            "horizon_wins": {
+                _horizon_key(horizon): _win_count(cases, name, horizon)
+                for horizon in horizons_s
+            },
+        }
+        for name in model_names
+    }
+    return {"overall": overall, "by_category": by_category, "model_totals": totals}
+
+
+def generate_thermal_test_bank_artifacts(
+    report: ThermalTestBankReport,
+    output_directory: Path | str,
+) -> tuple[Path, Path]:
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError as error:
+        raise ImportError("test-bank artifacts require matplotlib") from error
+    output = Path(output_directory)
+    output.mkdir(parents=True, exist_ok=True)
+    report_path = output / "thermal_test_bank.json"
+    report_path.write_text(
+        json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    model_names = tuple(report.aggregate["model_totals"])
+    colors = ("#2b6cb0", "#805ad5", "#319795", "#dd6b20", "#2f855a")
+    figure, axes = plt.subplots(1, 2, figsize=(15.2, 5.8))
+    for index, name in enumerate(model_names):
+        values = [
+            report.aggregate["overall"][_horizon_key(horizon)][name]
+            for horizon in report.horizons_s
+        ]
+        medians = [value["median_combined_nrmse"] for value in values]
+        minima = [value["best_combined_nrmse"] for value in values]
+        maxima = [value["worst_combined_nrmse"] for value in values]
+        color = colors[index % len(colors)]
+        axes[0].plot(report.horizons_s, medians, marker="o", label=name, color=color)
+        axes[0].fill_between(report.horizons_s, minima, maxima, color=color, alpha=0.12)
+    axes[0].set_xscale("log")
+    axes[0].set_xlabel("Cumulative rollout horizon [s]")
+    axes[0].set_ylabel("Combined NRMSE")
+    axes[0].set_title("Median with best-to-worst envelope")
+    axes[0].legend()
+
+    final_key = _horizon_key(report.horizons_s[-1])
+    width = 0.8 / len(model_names)
+    category_positions = np.arange(len(TEST_BANK_CATEGORIES), dtype=np.float64)
+    for index, name in enumerate(model_names):
+        values = [
+            report.aggregate["by_category"][category][final_key][name][
+                "median_combined_nrmse"
+            ]
+            for category in TEST_BANK_CATEGORIES
+        ]
+        axes[1].bar(
+            category_positions + (index - (len(model_names) - 1) / 2) * width,
+            values,
+            width=width,
+            label=name,
+            color=colors[index % len(colors)],
+        )
+    axes[1].set_xticks(category_positions)
+    axes[1].set_xticklabels(TEST_BANK_CATEGORIES, rotation=12)
+    axes[1].set_ylabel("Median combined NRMSE")
+    axes[1].set_title(f"{report.horizons_s[-1]:g} s accuracy by regime")
+    axes[1].legend()
+    for axis in axes:
+        axis.grid(True, alpha=0.22, axis="y")
+    figure.suptitle("Temperature-blind models against FULL electrothermal RK4")
+    figure.tight_layout()
+    figure_path = output / "thermal_test_bank.png"
+    figure.savefig(figure_path, dpi=170, bbox_inches="tight")
+    plt.close(figure)
+    return report_path, figure_path
+
+
+def _anchor_options(
+    dataset: Phase4Dataset,
+    trajectory_ids: tuple[str, ...],
+    *,
+    minimum_burn_in_steps: int,
+) -> tuple[dict[str, Any], ...]:
+    options: list[dict[str, Any]] = []
+    for trajectory_id in trajectory_ids:
+        trajectory = dataset.load_trajectory(trajectory_id)
+        for fraction in (0.10, 0.50, 0.90):
+            stop = max(minimum_burn_in_steps, int(round(fraction * trajectory.transitions)))
+            stop = min(stop, trajectory.transitions)
+            if stop < minimum_burn_in_steps:
+                continue
+            options.append(
+                {
+                    "trajectory_id": trajectory_id,
+                    "stop_step": stop,
+                    "temperature_c": float(trajectory.states[stop, 2]),
+                }
+            )
+    return tuple(options)
+
+
+def _temperature_stratified_options(
+    options: tuple[dict[str, Any], ...],
+    *,
+    count: int,
+) -> tuple[dict[str, Any], ...]:
+    trajectories = {str(value["trajectory_id"]) for value in options}
+    if len(trajectories) < count:
+        raise ValueError("test-bank category has too few distinct trajectories")
+    temperatures = [float(value["temperature_c"]) for value in options]
+    targets = np.linspace(min(temperatures), max(temperatures), count)
+    selected: list[dict[str, Any]] = []
+    used: set[str] = set()
+    for target in targets:
+        candidates = [
+            value for value in options if str(value["trajectory_id"]) not in used
+        ]
+        choice = min(
+            candidates,
+            key=lambda value: (
+                abs(float(value["temperature_c"]) - float(target)),
+                str(value["trajectory_id"]),
+                int(value["stop_step"]),
+            ),
+        )
+        selected.append(choice)
+        used.add(str(choice["trajectory_id"]))
+    return tuple(selected)
+
+
+def _accuracy_payload(metrics: AccuracyMetrics) -> dict[str, Any]:
+    payload = asdict(metrics)
+    payload["horizons"] = [asdict(value) for value in metrics.horizons]
+    return payload
+
+
+def _aggregate_group(
+    cases: tuple[dict[str, Any], ...],
+    *,
+    model_names: tuple[str, ...],
+    horizons_s: tuple[float, ...],
+) -> dict[str, Any]:
+    if not cases:
+        return {}
+    result: dict[str, Any] = {}
+    for horizon in horizons_s:
+        key = _horizon_key(horizon)
+        result[key] = {}
+        for name in model_names:
+            values = [
+                _case_horizon_nrmse(case, name, horizon)
+                for case in cases
+                if not case["models"][name]["divergent"]
+            ]
+            result[key][name] = {
+                "finite_cases": len(values),
+                "mean_combined_nrmse": float(np.mean(values)) if values else math.inf,
+                "median_combined_nrmse": float(median(values)) if values else math.inf,
+                "best_combined_nrmse": float(min(values)) if values else math.inf,
+                "worst_combined_nrmse": float(max(values)) if values else math.inf,
+            }
+    return result
+
+
+def _case_horizon_nrmse(case: Mapping[str, Any], model: str, horizon_s: float) -> float:
+    horizons = case["models"][model]["accuracy"]["horizons"]
+    for value in horizons:
+        if math.isclose(float(value["duration_s"]), horizon_s, abs_tol=1e-9):
+            return float(value["combined_nrmse"])
+    raise KeyError(f"{model} has no {horizon_s:g} s metric")
+
+
+def _win_count(cases: tuple[dict[str, Any], ...], model: str, horizon_s: float) -> int:
+    count = 0
+    for case in cases:
+        values = {
+            name: _case_horizon_nrmse(case, name, horizon_s)
+            for name, payload in case["models"].items()
+            if not payload["divergent"]
+        }
+        if values and model in values and values[model] == min(values.values()):
+            count += 1
+    return count
+
+
+def _horizon_key(duration_s: float) -> str:
+    return f"{duration_s:g}s"

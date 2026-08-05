@@ -221,23 +221,60 @@ def load_benchmark_anchor(
     original_start = int(raw_anchor["start_step"])
     original_burn_in = int(raw_anchor["burn_in_steps"])
     stop = original_start + original_burn_in
-    burn_in_steps = int(
+    requested_burn_in = int(
         getattr(checkpoint.manifest, "burn_in_steps", original_burn_in)
     )
-    start = stop - burn_in_steps
+    return (
+        build_benchmark_anchor(
+            dataset,
+            trajectory_id=trajectory_id,
+            stop_step=stop,
+            checkpoint=checkpoint,
+            split=split,
+            burn_in_steps=requested_burn_in,
+        ),
+        report,
+    )
+
+
+def build_benchmark_anchor(
+    dataset: Phase4Dataset,
+    *,
+    trajectory_id: str,
+    stop_step: int,
+    checkpoint: Any,
+    split: str | None = None,
+    burn_in_steps: int | None = None,
+) -> BenchmarkAnchorData:
+    """Build a measured-history anchor directly from a whole trajectory.
+
+    Unlike :func:`load_benchmark_anchor`, this helper does not require a
+    Phase-6B stress report and can therefore create a deterministic test bank.
+    Temperature is read only to initialize the FULL reference; normalization
+    and R2DN burn-in contain current, speed, and applied voltage only.
+    """
+
+    record = dataset.record(trajectory_id) if hasattr(dataset, "record") else None
+    actual_split = str(record["split"]) if record is not None else str(split or "unknown")
+    if split is not None and split != actual_split:
+        raise ValueError("requested anchor split does not match dataset provenance")
+    burn_in_steps = int(
+        burn_in_steps
+        if burn_in_steps is not None
+        else checkpoint.manifest.burn_in_steps
+    )
+    start = int(stop_step) - burn_in_steps
     trajectory = dataset.load_trajectory(trajectory_id)
-    if start < 0 or stop > trajectory.transitions:
-        raise ValueError(
-            "checkpoint burn-in cannot end at the selected Phase-6B anchor state"
-        )
+    if start < 0 or stop_step > trajectory.transitions:
+        raise ValueError("checkpoint burn-in does not fit inside the selected trajectory")
 
     normalization = checkpoint.normalization
-    observations = trajectory.states[start:stop, :2].astype(np.float64)
-    controls = trajectory.applied_voltages[start:stop].astype(np.float64)
+    observations = trajectory.states[start:stop_step, :2].astype(np.float64)
+    controls = trajectory.applied_voltages[start:stop_step].astype(np.float64)
     initial_full = MotorState.from_array(
-        trajectory.states[stop].astype(np.float64)
+        trajectory.states[stop_step].astype(np.float64)
     )
-    initial_observation = trajectory.states[stop, :2].astype(np.float64)
+    initial_observation = trajectory.states[stop_step, :2].astype(np.float64)
     observations = (
         observations - normalization.observation_mean[None, :]
     ) / normalization.observation_std[None, :]
@@ -248,7 +285,7 @@ def load_benchmark_anchor(
         initial_observation - normalization.observation_mean
     ) / normalization.observation_std
     provenance = BenchmarkAnchor(
-        split=split,
+        split=actual_split,
         trajectory_id=trajectory_id,
         start_step=start,
         burn_in_steps=burn_in_steps,
@@ -256,19 +293,12 @@ def load_benchmark_anchor(
         initial_speed_rad_s=initial_full.speed_rad_s,
         initial_temperature_c=initial_full.temperature_c,
     )
-    return (
-        BenchmarkAnchorData(
-            provenance=provenance,
-            burn_in_observations_normalized=observations[:, None, :].astype(
-                np.float32
-            ),
-            burn_in_controls_normalized=controls[:, None, :].astype(np.float32),
-            initial_observation_normalized=initial_observation[None, :].astype(
-                np.float32
-            ),
-            initial_full_state=initial_full,
-        ),
-        report,
+    return BenchmarkAnchorData(
+        provenance=provenance,
+        burn_in_observations_normalized=observations[:, None, :].astype(np.float32),
+        burn_in_controls_normalized=controls[:, None, :].astype(np.float32),
+        initial_observation_normalized=initial_observation[None, :].astype(np.float32),
+        initial_full_state=initial_full,
     )
 
 

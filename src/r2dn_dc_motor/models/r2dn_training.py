@@ -58,6 +58,90 @@ class ValidationRolloutMetrics:
 
 
 @dataclass(frozen=True)
+class R2DNTrainingObjective:
+    """Optional Phase-7 objective layered onto the unchanged R2DN output.
+
+    The upstream model continues to predict the absolute normalized next state.
+    ``delta_weight`` only adds an increment-normalized auxiliary loss, so the
+    deployed autoregressive interface and contracting parameterization do not
+    change. ``rollout_horizon_weights`` replaces a single uniform rollout loss
+    with a weighted collection of cumulative prefix losses.
+    """
+
+    delta_weight: float = 0.0
+    delta_std_normalized: tuple[float, float] = (1.0, 1.0)
+    rollout_horizon_weights: tuple[tuple[int, float], ...] = ()
+
+    def validate(self) -> None:
+        if not math.isfinite(self.delta_weight) or self.delta_weight < 0.0:
+            raise ValueError("delta_weight must be finite and non-negative")
+        if len(self.delta_std_normalized) != 2 or any(
+            not math.isfinite(value) or value <= 0.0
+            for value in self.delta_std_normalized
+        ):
+            raise ValueError("delta_std_normalized must contain two positive values")
+        horizons = tuple(step for step, _ in self.rollout_horizon_weights)
+        if tuple(sorted(set(horizons))) != horizons:
+            raise ValueError("rollout objective horizons must be increasing and unique")
+        if any(step < 1 for step in horizons) or any(
+            not math.isfinite(weight) or weight <= 0.0
+            for _, weight in self.rollout_horizon_weights
+        ):
+            raise ValueError("rollout horizon steps and weights must be positive")
+
+    def active_rollout_horizons(self, maximum_steps: int) -> tuple[tuple[int, float], ...]:
+        values = tuple(
+            (steps, weight)
+            for steps, weight in self.rollout_horizon_weights
+            if steps <= maximum_steps
+        )
+        if values and values[-1][0] != maximum_steps:
+            values = (*values, (maximum_steps, values[-1][1]))
+        return values
+
+
+def compute_train_increment_std(
+    dataset: Phase4Dataset,
+    *,
+    floor: float = 1.0e-6,
+) -> tuple[float, float]:
+    """Fit increment scales from train-only model views without hidden signals."""
+
+    if not math.isfinite(floor) or floor <= 0.0:
+        raise ValueError("increment standard-deviation floor must be positive")
+    count = 0
+    mean = np.zeros(2, dtype=np.float64)
+    m2 = np.zeros(2, dtype=np.float64)
+    scale = dataset.normalization.observation_std
+    for trajectory_id in dataset.trajectory_ids("train"):
+        observations = np.asarray(
+            dataset.model_view(trajectory_id).observations[:, 0, :],
+            dtype=np.float64,
+        )
+        values = np.diff(observations, axis=0) / scale[None, :]
+        batch_count = values.shape[0]
+        if batch_count == 0:
+            continue
+        batch_mean = np.mean(values, axis=0)
+        centered = values - batch_mean
+        batch_m2 = np.sum(centered * centered, axis=0)
+        if count == 0:
+            count = batch_count
+            mean = batch_mean
+            m2 = batch_m2
+            continue
+        delta = batch_mean - mean
+        total = count + batch_count
+        mean += delta * batch_count / total
+        m2 += batch_m2 + delta * delta * count * batch_count / total
+        count = total
+    if count < 1:
+        raise ValueError("training split contains no transitions")
+    values = np.maximum(np.sqrt(m2 / count), floor)
+    return float(values[0]), float(values[1])
+
+
+@dataclass(frozen=True)
 class R2DNRunResult:
     """One trained parameter tree plus compact, serializable evidence."""
 
@@ -364,6 +448,8 @@ def _train_single_run(
     role: str,
     progress: ProgressCallback,
     optimizer_override: Mapping[str, Any] | None = None,
+    objective: R2DNTrainingObjective | None = None,
+    architecture_override: Mapping[str, Any] | None = None,
 ) -> R2DNRunResult:
     try:
         import jax
@@ -374,12 +460,23 @@ def _train_single_run(
             'Phase-6 training requires: python -m pip install -e ".[phase6]"'
         ) from error
 
+    architecture_settings = dict(spec.architecture)
+    if architecture_override is not None:
+        unsupported = set(architecture_override) - {"feature_size", "hidden_sizes"}
+        if unsupported:
+            raise ValueError(
+                "unsupported R2DN architecture override: "
+                + ", ".join(sorted(unsupported))
+            )
+        architecture_settings.update(architecture_override)
+    if objective is not None:
+        objective.validate()
     architecture = R2DNArchitecture(
         input_size=int(spec.architecture["input_size"]),
         state_size=latent_size,
-        features=int(spec.architecture["feature_size"]),
+        features=int(architecture_settings["feature_size"]),
         output_size=int(spec.architecture["output_size"]),
-        hidden=tuple(int(value) for value in spec.architecture["hidden_sizes"]),
+        hidden=tuple(int(value) for value in architecture_settings["hidden_sizes"]),
         init_method=str(spec.architecture["initialization"]),
         do_polar_param=bool(spec.architecture["polar_parameterization"]),
     )
@@ -435,6 +532,7 @@ def _train_single_run(
             jax=jax,
             jnp=jnp,
             optax=optax,
+            objective=objective,
         )
         stage_updates = 0
         stage_nonfinite_retries = 0
@@ -503,16 +601,19 @@ def _train_single_run(
                 continue
 
             last_finite = int(np.flatnonzero(applied_mask)[-1])
+            metric_names = [
+                "total_loss",
+                "one_step_loss",
+                "rollout_loss",
+                "reconstruction_loss",
+            ]
+            if objective is not None:
+                metric_names.append("delta_loss")
+            metric_names.append("gradient_norm")
             metric_values = {
                 name: float(value)
                 for name, value in zip(
-                    (
-                        "total_loss",
-                        "one_step_loss",
-                        "rollout_loss",
-                        "reconstruction_loss",
-                        "gradient_norm",
-                    ),
+                    metric_names,
                     metric_matrix[last_finite],
                     strict=True,
                 )
@@ -641,6 +742,46 @@ def train_r2dn_run_with_optimizer(
     )
 
 
+def train_r2dn_run_with_objective(
+    dataset: Phase4Dataset,
+    *,
+    spec: Phase6Spec,
+    profile: TrainingProfile,
+    latent_size: int,
+    seed: int,
+    stages: Sequence[CurriculumStage],
+    validation_horizon_steps: int,
+    validation_window_seed: int,
+    role: str,
+    objective: R2DNTrainingObjective,
+    architecture: Mapping[str, Any] | None = None,
+    optimizer: Mapping[str, Any] | None = None,
+    progress: ProgressCallback | None = None,
+) -> R2DNRunResult:
+    """Train a pure ContractingR2DN with Phase-7 accuracy objectives.
+
+    This entry point is intentionally separate from historical Phase-6 calls.
+    It preserves the official absolute-state output and only changes the
+    train-only loss weighting and, when requested, feature/hidden width.
+    """
+
+    return _train_single_run(
+        dataset,
+        spec=spec,
+        profile=profile,
+        latent_size=latent_size,
+        seed=seed,
+        stages=stages,
+        validation_horizon_steps=validation_horizon_steps,
+        validation_window_seed=validation_window_seed,
+        role=role,
+        progress=progress or (lambda _: None),
+        optimizer_override=optimizer,
+        objective=objective,
+        architecture_override=architecture,
+    )
+
+
 def _make_train_step(
     adapter: OfficialR2DNAdapter,
     optimizer: Any,
@@ -650,18 +791,31 @@ def _make_train_step(
     jax: Any,
     jnp: Any,
     optax: Any,
+    objective: R2DNTrainingObjective | None = None,
 ) -> Callable[..., Any]:
     one_weight = stage.one_step_weight
     rollout_weight = stage.rollout_weight
     reconstruction_weight = stage.reconstruction_weight
     batch_size = stage.batch_size
     latent_size = adapter.architecture.state_size
+    enhanced_objective = objective is not None
+    delta_weight = objective.delta_weight if objective is not None else 0.0
+    delta_scale = (
+        jnp.asarray(objective.delta_std_normalized, dtype=jnp.float32)
+        if objective is not None
+        else jnp.ones((2,), dtype=jnp.float32)
+    )
+    horizon_weights = (
+        objective.active_rollout_horizons(stage.rollout_steps)
+        if objective is not None
+        else ()
+    )
 
     def loss_function(
         parameters: Any,
         observations: Any,
         controls: Any,
-    ) -> tuple[Any, tuple[Any, Any, Any]]:
+    ) -> tuple[Any, tuple[Any, ...]]:
         initial_state = jnp.zeros((batch_size, latent_size), dtype=jnp.float32)
         burned_state, burn_predictions = adapter.burn_in(
             parameters,
@@ -688,6 +842,17 @@ def _make_train_step(
             teacher_regressors,
         )
         one_step_loss = jnp.mean((one_step_predictions - targets) ** 2)
+        if enhanced_objective and delta_weight > 0.0:
+            previous = observations[
+                burn_in_steps : burn_in_steps + stage.rollout_steps
+            ]
+            predicted_delta = one_step_predictions - previous
+            target_delta = targets - previous
+            delta_loss = jnp.mean(
+                ((predicted_delta - target_delta) / delta_scale) ** 2
+            )
+        else:
+            delta_loss = jnp.asarray(0.0, dtype=jnp.float32)
 
         if rollout_weight > 0.0:
             _, rollout_predictions = adapter.free_rollout(
@@ -696,7 +861,16 @@ def _make_train_step(
                 observations[burn_in_steps],
                 controls[burn_in_steps:],
             )
-            rollout_loss = jnp.mean((rollout_predictions - targets) ** 2)
+            rollout_error = (rollout_predictions - targets) ** 2
+            if horizon_weights:
+                weighted_losses = tuple(
+                    weight * jnp.mean(rollout_error[:steps])
+                    for steps, weight in horizon_weights
+                )
+                total_weight = sum(weight for _, weight in horizon_weights)
+                rollout_loss = sum(weighted_losses) / total_weight
+            else:
+                rollout_loss = jnp.mean(rollout_error)
         else:
             rollout_loss = jnp.asarray(0.0, dtype=jnp.float32)
 
@@ -711,8 +885,12 @@ def _make_train_step(
             one_weight * one_step_loss
             + rollout_weight * rollout_loss
             + reconstruction_weight * reconstruction_loss
+            + delta_weight * delta_loss
         )
-        return total, (one_step_loss, rollout_loss, reconstruction_loss)
+        components = (one_step_loss, rollout_loss, reconstruction_loss)
+        if enhanced_objective:
+            components = (*components, delta_loss)
+        return total, components
 
     value_and_gradient = jax.value_and_grad(loss_function, has_aux=True)
 
@@ -722,7 +900,7 @@ def _make_train_step(
         optimizer_state: Any,
         observations: Any,
         controls: Any,
-    ) -> tuple[Any, Any, tuple[Any, Any, Any, Any, Any], Any]:
+    ) -> tuple[Any, Any, tuple[Any, ...], Any]:
         (total_loss, components), gradients = value_and_gradient(
             parameters,
             observations,

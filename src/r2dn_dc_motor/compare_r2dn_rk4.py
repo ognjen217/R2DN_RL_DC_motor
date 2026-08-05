@@ -13,6 +13,7 @@ from r2dn_dc_motor.models.r2dn_phase6b import load_phase6b_checkpoint
 from r2dn_dc_motor.models.r2dn_phase6d import load_phase6d_checkpoint
 from r2dn_dc_motor.models.r2dn_phase6e import load_phase6e_checkpoint
 from r2dn_dc_motor.models.r2dn_phase6f import load_phase6f_checkpoint
+from r2dn_dc_motor.models.r2dn_phase7 import load_phase7_checkpoint
 from r2dn_dc_motor.models.r2dn_training import load_phase6_checkpoint
 from r2dn_dc_motor.phase2_spec import load_phase2_spec
 from r2dn_dc_motor.phase6_spec import load_phase6_spec
@@ -20,6 +21,7 @@ from r2dn_dc_motor.phase6b_spec import STRESS_SCENARIOS, load_phase6b_spec
 from r2dn_dc_motor.phase6d_spec import load_phase6d_spec
 from r2dn_dc_motor.phase6e_spec import load_phase6e_spec
 from r2dn_dc_motor.phase6f_spec import load_phase6f_spec
+from r2dn_dc_motor.phase7_spec import load_phase7_spec
 from r2dn_dc_motor.validation.r2dn_rk4_benchmark import (
     build_benchmark_report,
     build_voltage_trace,
@@ -34,7 +36,8 @@ from r2dn_dc_motor.validation.r2dn_rk4_benchmark import (
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Compare a selected Phase-6, Phase-6B, Phase-6D, Phase-6E, or Phase-6F "
+            "Compare a selected Phase-6, Phase-6B, Phase-6D, Phase-6E, Phase-6F, "
+            "or Phase-7 "
             "R2DN checkpoint "
             "against the canonical FULL electrothermal RK4 solver on the same "
             "long voltage trace."
@@ -56,7 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path("checkpoints/phase6b/r2dn-v2"),
         help=(
-            "selected and validated Phase-6, Phase-6B, Phase-6D, Phase-6E, or Phase-6F "
+            "selected and validated Phase-6 through Phase-7 "
             "checkpoint directory"
         ),
     )
@@ -119,12 +122,23 @@ def load_benchmark_checkpoint(
     phase6b: Any,
     phase6d: Any,
 ) -> tuple[Any, bool]:
-    """Load a validated Phase-6 through Phase-6F checkpoint."""
+    """Load a validated Phase-6 through Phase-7 checkpoint."""
 
     manifest_payload = json.loads(
         (checkpoint_directory / "manifest.json").read_text(encoding="utf-8")
     )
     checkpoint_phase = str(manifest_payload.get("phase"))
+    if checkpoint_phase == "7":
+        phase7 = load_phase7_spec()
+        return (
+            load_phase7_checkpoint(
+                checkpoint_directory,
+                dataset=dataset,
+                phase7=phase7,
+                phase6=phase6,
+            ),
+            False,
+        )
     if checkpoint_phase == "6F":
         phase6e = load_phase6e_spec(phase6=phase6, phase6b=phase6b)
         phase6f = load_phase6f_spec(
@@ -184,7 +198,8 @@ def load_benchmark_checkpoint(
         )
     raise ValueError(
         "unsupported R2DN checkpoint phase: "
-        f"{manifest_payload.get('phase')!r}; expected 6, 6B, 6D, 6E, or 6F"
+        f"{manifest_payload.get('phase')!r}; expected 6, 6B, 6D, 6E, or 6F "
+        "(Phase 7 is also supported)"
     )
 
 

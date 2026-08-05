@@ -39,8 +39,9 @@ python -m r2dn_dc_motor.validate_phase6d \
 ```
 
 Ovaj korak ne menja nijedan checkpoint i ne trenira model. Ako postojeći
-latent-8 sa dužim burn-in-om već dostigne potrebnu tačnost, skupa ablacijska
-studija može da se preskoči i model odmah ide na završni 1000 s benchmark.
+latent-8 već dostigne potrebnu tačnost, skupa ablacijska studija može da se
+preskoči i model odmah ide na završni 1000 s benchmark. Ako su burn-in rezultati
+praktično jednaki, koristi se kraći burn-in radi jednostavnije inicijalizacije.
 
 ## Eksperiment 2 — kontrolisana A–D ablacijska studija
 
@@ -92,9 +93,29 @@ checkpoints/phase6d/r2dn-v3/
 
 ## Eksperiment 3 — završno poređenje sa RK4
 
-Samo izabrani Phase-6D checkpoint ponovo prolazi 1000 s Phase-6C benchmark.
-Koristi se drugi output direktorijum da se ne prepiše početni latent-4
-rezultat.
+Izabrani checkpoint ponovo prolazi 1000 s Phase-6C benchmark. Benchmark podržava
+postojeće Phase-6 i Phase-6B checkpoint-e, kao i novi Phase-6D checkpoint.
+Koristi se drugi output direktorijum da se ne prepiše početni latent-4 rezultat.
+
+Ako screening izabere postojeći Phase-6 latent-8, koristi se:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 \
+python -m r2dn_dc_motor.compare_r2dn_rk4 \
+  --require-cuda \
+  --dataset data/phase4-full-v1 \
+  --checkpoint-dir checkpoints/phase6/r2dn-v1 \
+  --phase6b-report results/phase6b/phase6b_latent_and_stability.json \
+  --scenario multisine \
+  --duration-s 1000 \
+  --split validation \
+  --anchor-index 0 \
+  --chunk-steps 10000 \
+  --output-dir results/phase6c_latent8
+```
+
+Ako je ipak obavljena puna Phase-6D ablacijska studija, koristi se njen
+checkpoint:
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 \

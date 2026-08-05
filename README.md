@@ -26,6 +26,10 @@ Implementirane su:
   propusnost i izmereni odnos vremena;
 - **Faza 6D** — screening postojećih latent-4/latent-8 checkpoint-a i
   kontrolisana latent/burn-in/rollout ablacijska studija za veću tačnost;
+- **Faza 6E/6F** — puna pretraga latentnih prostora 8/12/16 i kontrolisana
+  provera optimizer/generalization floor-a;
+- **Faza 7** — broadband FULL dataset, pure-R2DN data/loss/width ablation i
+  višeputanjski ID/excitation-OOD/thermal-OOD test bank na 1/10/100/1000 s;
 - time-major format sekvenci i temperature-free model view;
 - observation burn-in i autoregresivni free-rollout adapter;
 - verzionisan format checkpoint manifesta;
@@ -64,6 +68,7 @@ python -m r2dn_dc_motor.validate_phase4 --spec-only
 python -m r2dn_dc_motor.validate_phase5 --spec-only
 python -m r2dn_dc_motor.validate_phase6 --spec-only
 python -m r2dn_dc_motor.validate_phase6b --spec-only
+python -m r2dn_dc_motor.validate_phase7 --spec-only
 pytest -v
 ruff check .
 ```
@@ -279,6 +284,37 @@ python -m r2dn_dc_motor.validate_phase6f \
 
 Detalji su u `docs/phase6f_optimizer_floor_ablation.md`.
 
+Plan povećanja tačnosti bez promene centralne teze implementiran je u Fazi 7.
+Kompletan redosled — multi-trajectory baseline, generisanje broadband dataseta,
+novi ISO-CAL fit, pure-R2DN trening i završno poređenje trenutnog/poboljšanog
+modela — nalazi se u `docs/phase7_pure_r2dn_accuracy.md`.
+
+Završno poređenje skrivenog termičkog uticaja pokreće sva tri modela koji ne
+dobijaju temperaturu (`R2DN`, `ISO-NOM`, `ISO-CAL`) nad istim početnim stanjem i
+istim milion-koračnim naponskim tragom. Ground truth je `FULL/RK4`, koji interno
+evoluira temperaturu i koristi stvarnu zavisnost otpora od temperature. Jedna
+ista putanja ocenjuje se kumulativno na 1, 10, 100 i 1000 s.
+
+```bash
+CUDA_VISIBLE_DEVICES=0 \
+python -m r2dn_dc_motor.compare_hidden_thermal_models \
+  --require-cuda \
+  --dataset data/phase4-full-v1 \
+  --checkpoint-dir checkpoints/phase6e/r2dn-v1 \
+  --iso-cal-checkpoint checkpoints/phase5/iso_cal.json \
+  --phase6b-report results/phase6b/phase6b_latent_and_stability.json \
+  --scenario multisine \
+  --duration-s 1000 \
+  --split validation \
+  --anchor-index 0 \
+  --chunk-steps 10000 \
+  --output-dir results/hidden_thermal_comparison
+```
+
+Komanda generiše JSON sa metrikama i rangiranjem i PNG sa strujom, brzinom,
+NRMSE-om po horizontima, FULL/RK4 baseline-om i skrivenom temperaturom. Detalji
+su u `docs/hidden_thermal_comparison.md`.
+
 ## Struktura
 
 ```text
@@ -289,12 +325,14 @@ Detalji su u `docs/phase6f_optimizer_floor_ablation.md`.
 │   ├── phase2.toml
 │   ├── phase3.toml
 │   ├── phase4.toml
+│   ├── phase4_broadband.toml
 │   ├── phase5.toml
 │   ├── phase6.toml
 │   ├── phase6b.toml
 │   ├── phase6d.toml
 │   ├── phase6e.toml
-│   └── phase6f.toml
+│   ├── phase6f.toml
+│   └── phase7.toml
 ├── docs/
 │   ├── phase0_specification.md
 │   ├── phase1_design.md
@@ -308,6 +346,7 @@ Detalji su u `docs/phase6f_optimizer_floor_ablation.md`.
 │   ├── phase6d_accuracy_ablation.md
 │   ├── phase6e_larger_latent_search.md
 │   ├── phase6f_optimizer_floor_ablation.md
+│   ├── phase7_pure_r2dn_accuracy.md
 │   ├── references.md
 │   └── decisions/
 ├── src/r2dn_dc_motor/data/
@@ -326,12 +365,14 @@ Detalji su u `docs/phase6f_optimizer_floor_ablation.md`.
 │   ├── phase4.py
 │   ├── phase5.py
 │   ├── phase6.py
-│   └── phase6b.py
+│   ├── phase6b.py
+│   └── thermal_test_bank.py
 ├── src/r2dn_dc_motor/models/
 │   ├── checkpoint.py
 │   ├── isothermal_calibration.py
 │   ├── r2dn_adapter.py
 │   ├── r2dn_phase6b.py
+│   ├── r2dn_phase7.py
 │   ├── r2dn_training.py
 │   └── temperature_probe.py
 ├── src/r2dn_dc_motor/
@@ -342,6 +383,7 @@ Detalji su u `docs/phase6f_optimizer_floor_ablation.md`.
 │   ├── phase5_spec.py
 │   ├── phase6_spec.py
 │   ├── phase6b_spec.py
+│   ├── phase7_spec.py
 │   ├── spec.py
 │   ├── validate_phase0.py
 │   ├── validate_phase1.py
@@ -350,7 +392,9 @@ Detalji su u `docs/phase6f_optimizer_floor_ablation.md`.
 │   ├── validate_phase4.py
 │   ├── validate_phase5.py
 │   ├── validate_phase6.py
-│   └── validate_phase6b.py
+│   ├── validate_phase6b.py
+│   ├── validate_phase7.py
+│   └── evaluate_thermal_test_bank.py
 └── tests/
 ```
 

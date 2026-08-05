@@ -1,0 +1,412 @@
+{
+  "anchor": {
+    "burn_in_steps": 250,
+    "initial_current_a": 3.348219871520996,
+    "initial_speed_rad_s": 4.489734649658203,
+    "initial_temperature_c": 81.35901641845703,
+    "split": "validation",
+    "start_step": 6152,
+    "trajectory_id": "validation-piecewise_constant_voltage-0009"
+  },
+  "benchmark": "r2dn_iso_nom_iso_cal_vs_full_rk4",
+  "control_period_s": 0.001,
+  "control_steps": 1000000,
+  "dataset_fingerprint": "d4dbf5b72521f29006f9a5ac802115ca83505d0ec08845490580899e7a7df070",
+  "duration_s": 1000.0,
+  "hardware": {
+    "jax": {
+      "backend": "gpu",
+      "cuda12_pjrt_version": "0.5.3",
+      "cuda12_plugin_version": "0.5.3",
+      "cuda_active": true,
+      "device_count": 1,
+      "device_kinds": [
+        "NVIDIA GeForce RTX 5050 Laptop GPU"
+      ],
+      "device_platforms": [
+        "gpu"
+      ],
+      "jax_version": "0.5.3",
+      "jaxlib_version": "0.5.3"
+    },
+    "machine": "x86_64",
+    "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+    "processor": "unknown",
+    "python": "3.13.7"
+  },
+  "horizon_ranking": {
+    "1000s": [
+      {
+        "combined_nrmse": 0.008467217956005047,
+        "current_nrmse": 0.010935214826826457,
+        "model": "ISO-CAL",
+        "rank": 1,
+        "speed_nrmse": 0.004879409443790165
+      },
+      {
+        "combined_nrmse": 0.09539967830332306,
+        "current_nrmse": 0.12410137490183513,
+        "model": "ISO-NOM",
+        "rank": 2,
+        "speed_nrmse": 0.05292490895817464
+      },
+      {
+        "combined_nrmse": 0.19302610971386946,
+        "current_nrmse": 0.17875284854641318,
+        "model": "R2DN",
+        "rank": 3,
+        "speed_nrmse": 0.20631426804534347
+      }
+    ],
+    "100s": [
+      {
+        "combined_nrmse": 0.018808766949525754,
+        "current_nrmse": 0.02425997345232783,
+        "model": "ISO-CAL",
+        "rank": 1,
+        "speed_nrmse": 0.01090839660149456
+      },
+      {
+        "combined_nrmse": 0.10987631468136727,
+        "current_nrmse": 0.14283507769650472,
+        "model": "ISO-NOM",
+        "rank": 2,
+        "speed_nrmse": 0.061186188272772876
+      },
+      {
+        "combined_nrmse": 0.19052738205183675,
+        "current_nrmse": 0.16817979067543187,
+        "model": "R2DN",
+        "rank": 3,
+        "speed_nrmse": 0.21051585363440137
+      }
+    ],
+    "10s": [
+      {
+        "combined_nrmse": 0.046831637956412535,
+        "current_nrmse": 0.06056342449401651,
+        "model": "ISO-CAL",
+        "rank": 1,
+        "speed_nrmse": 0.026804407117460183
+      },
+      {
+        "combined_nrmse": 0.1445561294865643,
+        "current_nrmse": 0.1883471254679697,
+        "model": "ISO-NOM",
+        "rank": 2,
+        "speed_nrmse": 0.07948779448585525
+      },
+      {
+        "combined_nrmse": 0.17600871732846757,
+        "current_nrmse": 0.13280329096278115,
+        "model": "R2DN",
+        "rank": 3,
+        "speed_nrmse": 0.2105265376637341
+      }
+    ],
+    "1s": [
+      {
+        "combined_nrmse": 0.054747283471530975,
+        "current_nrmse": 0.07039890836499105,
+        "model": "ISO-CAL",
+        "rank": 1,
+        "speed_nrmse": 0.032226135294849245
+      },
+      {
+        "combined_nrmse": 0.14893327684282426,
+        "current_nrmse": 0.19305609076626642,
+        "model": "ISO-NOM",
+        "rank": 2,
+        "speed_nrmse": 0.08421156524094392
+      },
+      {
+        "combined_nrmse": 0.19539789293031384,
+        "current_nrmse": 0.13617036976675742,
+        "model": "R2DN",
+        "rank": 3,
+        "speed_nrmse": 0.24045436889521754
+      }
+    ]
+  },
+  "horizons_s": [
+    1.0,
+    10.0,
+    100.0,
+    1000.0
+  ],
+  "interface_audit": {
+    "candidate_control": [
+      "armature_voltage_v"
+    ],
+    "candidate_observations": [
+      "armature_current_a",
+      "angular_speed_rad_s"
+    ],
+    "candidate_temperature_input": false,
+    "full_reference_evolves_internal_temperature_state": true,
+    "iso_cal_load_torque_used_during_fit": false,
+    "iso_cal_temperature_used_during_fit": false,
+    "iso_cal_thermal_state": false,
+    "iso_nom_thermal_state": false,
+    "passed": true,
+    "r2dn_burn_in_uses_temperature": false
+  },
+  "interpretation": {
+    "claim_scope": "The result tests whether the temperature-blind learned model captures hidden thermal effects better than incomplete isothermal physics on this held-out excitation.",
+    "fair_input_scope": "R2DN, ISO-NOM, and ISO-CAL receive only current, angular speed, and applied voltage; none receives temperature.",
+    "horizon_metric": "Every reported horizon is cumulative from the shared anchor, not an independently reinitialized rollout.",
+    "reference": "FULL/RK4 is the ground-truth baseline. It evolves winding temperature internally and applies the true resistance-temperature law."
+  },
+  "models": {
+    "ISO-CAL": {
+      "accuracy": {
+        "combined_nrmse": 0.008467217956005047,
+        "compared_steps": 1000000,
+        "current_nrmse": 0.010935214826826457,
+        "current_rmse_a": 0.04130655907527634,
+        "final_current_error_a": -0.07873028691020956,
+        "final_speed_error_rad_s": -0.033069406442798766,
+        "horizons": [
+          {
+            "combined_nrmse": 0.054747283471530975,
+            "current_nrmse": 0.07039890836499105,
+            "current_rmse_a": 0.2659240548325097,
+            "duration_s": 1.0,
+            "horizon_steps": 1000,
+            "speed_nrmse": 0.032226135294849245,
+            "speed_rmse_rad_s": 2.070501932774233
+          },
+          {
+            "combined_nrmse": 0.046831637956412535,
+            "current_nrmse": 0.06056342449401651,
+            "current_rmse_a": 0.2287716072597583,
+            "duration_s": 10.0,
+            "horizon_steps": 10000,
+            "speed_nrmse": 0.026804407117460183,
+            "speed_rmse_rad_s": 1.7221604835885849
+          },
+          {
+            "combined_nrmse": 0.018808766949525754,
+            "current_nrmse": 0.02425997345232783,
+            "current_rmse_a": 0.09163935436504837,
+            "duration_s": 100.0,
+            "horizon_steps": 100000,
+            "speed_nrmse": 0.01090839660149456,
+            "speed_rmse_rad_s": 0.700855254290218
+          },
+          {
+            "combined_nrmse": 0.008467217956005047,
+            "current_nrmse": 0.010935214826826457,
+            "current_rmse_a": 0.04130655907527634,
+            "duration_s": 1000.0,
+            "horizon_steps": 1000000,
+            "speed_nrmse": 0.004879409443790165,
+            "speed_rmse_rad_s": 0.31349792929647585
+          }
+        ],
+        "maximum_absolute_current_error_a": 0.5845647941101682,
+        "maximum_absolute_speed_error_rad_s": 4.107489318837331,
+        "speed_nrmse": 0.004879409443790165,
+        "speed_rmse_rad_s": 0.31349792929647585
+      },
+      "calibration": {
+        "fit_split": "train",
+        "fit_trajectory_count": 224,
+        "load_torque_used": false,
+        "selection_policy": "single_locked_fit_no_validation_tuning",
+        "temperature_used": false
+      },
+      "parameters": {
+        "armature_inductance_h": 0.003,
+        "back_emf_constant_v_s_per_rad": 0.08,
+        "default_load_torque_n_m": 0.15,
+        "effective_resistance_ohm": 1.3685785798153354,
+        "inertia_kg_m2": 0.002,
+        "torque_constant_n_m_per_a": 0.08,
+        "viscous_friction_n_m_s_per_rad": 0.002000248834679419
+      },
+      "role": "temperature_blind_calibrated_physical_candidate",
+      "temperature_input": false,
+      "timing": {
+        "control_steps_completed": 1000000,
+        "simulated_seconds_per_wall_second": 159.12936021621573,
+        "wall_time_s": 6.284195441000065
+      }
+    },
+    "ISO-NOM": {
+      "accuracy": {
+        "combined_nrmse": 0.09539967830332306,
+        "compared_steps": 1000000,
+        "current_nrmse": 0.12410137490183513,
+        "current_rmse_a": 0.46877915568060935,
+        "final_current_error_a": 1.055032127857439,
+        "final_speed_error_rad_s": 0.4919816805813326,
+        "horizons": [
+          {
+            "combined_nrmse": 0.14893327684282426,
+            "current_nrmse": 0.19305609076626642,
+            "current_rmse_a": 0.7292479337962116,
+            "duration_s": 1.0,
+            "horizon_steps": 1000,
+            "speed_nrmse": 0.08421156524094392,
+            "speed_rmse_rad_s": 5.410521832606659
+          },
+          {
+            "combined_nrmse": 0.1445561294865643,
+            "current_nrmse": 0.1883471254679697,
+            "current_rmse_a": 0.7114603405611506,
+            "duration_s": 10.0,
+            "horizon_steps": 10000,
+            "speed_nrmse": 0.07948779448585525,
+            "speed_rmse_rad_s": 5.107023557405269
+          },
+          {
+            "combined_nrmse": 0.10987631468136727,
+            "current_nrmse": 0.14283507769650472,
+            "current_rmse_a": 0.5395436366206467,
+            "duration_s": 100.0,
+            "horizon_steps": 100000,
+            "speed_nrmse": 0.061186188272772876,
+            "speed_rmse_rad_s": 3.931160839447984
+          },
+          {
+            "combined_nrmse": 0.09539967830332306,
+            "current_nrmse": 0.12410137490183513,
+            "current_rmse_a": 0.46877915568060935,
+            "duration_s": 1000.0,
+            "horizon_steps": 1000000,
+            "speed_nrmse": 0.05292490895817464,
+            "speed_rmse_rad_s": 3.4003806316579714
+          }
+        ],
+        "maximum_absolute_current_error_a": 1.7848334600305602,
+        "maximum_absolute_speed_error_rad_s": 11.406360141013419,
+        "speed_nrmse": 0.05292490895817464,
+        "speed_rmse_rad_s": 3.4003806316579714
+      },
+      "parameters": {
+        "armature_inductance_h": 0.003,
+        "back_emf_constant_v_s_per_rad": 0.08,
+        "default_load_torque_n_m": 0.15,
+        "effective_resistance_ohm": 1.2,
+        "inertia_kg_m2": 0.002,
+        "torque_constant_n_m_per_a": 0.08,
+        "viscous_friction_n_m_s_per_rad": 0.002
+      },
+      "role": "temperature_blind_nominal_physical_candidate",
+      "temperature_input": false,
+      "timing": {
+        "control_steps_completed": 1000000,
+        "simulated_seconds_per_wall_second": 156.4162062721791,
+        "wall_time_s": 6.393199425000148
+      }
+    },
+    "R2DN": {
+      "accuracy": {
+        "combined_nrmse": 0.19302610971386946,
+        "compared_steps": 1000000,
+        "current_nrmse": 0.17875284854641318,
+        "current_rmse_a": 0.6752190254410539,
+        "final_current_error_a": -1.5434725945157615,
+        "final_speed_error_rad_s": 27.60929443465199,
+        "horizons": [
+          {
+            "combined_nrmse": 0.19539789293031384,
+            "current_nrmse": 0.13617036976675742,
+            "current_rmse_a": 0.5143684428837797,
+            "duration_s": 1.0,
+            "horizon_steps": 1000,
+            "speed_nrmse": 0.24045436889521754,
+            "speed_rmse_rad_s": 15.44898980242071
+          },
+          {
+            "combined_nrmse": 0.17600871732846757,
+            "current_nrmse": 0.13280329096278115,
+            "current_rmse_a": 0.5016496767936609,
+            "duration_s": 10.0,
+            "horizon_steps": 10000,
+            "speed_nrmse": 0.2105265376637341,
+            "speed_rmse_rad_s": 13.526151961594309
+          },
+          {
+            "combined_nrmse": 0.19052738205183675,
+            "current_nrmse": 0.16817979067543187,
+            "current_rmse_a": 0.6352804740298282,
+            "duration_s": 100.0,
+            "horizon_steps": 100000,
+            "speed_nrmse": 0.21051585363440137,
+            "speed_rmse_rad_s": 13.52546552174727
+          },
+          {
+            "combined_nrmse": 0.19302610971386946,
+            "current_nrmse": 0.17875284854641318,
+            "current_rmse_a": 0.6752190254410539,
+            "duration_s": 1000.0,
+            "horizon_steps": 1000000,
+            "speed_nrmse": 0.20631426804534347,
+            "speed_rmse_rad_s": 13.255517201749417
+          }
+        ],
+        "maximum_absolute_current_error_a": 2.8822157102832895,
+        "maximum_absolute_speed_error_rad_s": 60.724046741600844,
+        "speed_nrmse": 0.20631426804534347,
+        "speed_rmse_rad_s": 13.255517201749417
+      },
+      "checkpoint_phase": "6E",
+      "contractivity_margin": 0.00016628950834274292,
+      "latent_size": 16,
+      "parameter_sha256": "7ee58809af59a133772c27cfb1778cc6435db4ab4caaa0064e3c5874a1f44346",
+      "role": "temperature_blind_data_driven_candidate",
+      "seed": 43,
+      "selected_variant": "latent16",
+      "temperature_input": false,
+      "timing": {
+        "cold_simulated_seconds_per_wall_second": 58.04533313956641,
+        "cold_wall_time_s": 17.227913872000045,
+        "warm_burn_in_wall_time_s": 0.004161161999945762,
+        "warm_simulated_seconds_per_wall_second": 60.44133578590628,
+        "warm_wall_time_s": 16.54496855499974
+      }
+    }
+  },
+  "passed": true,
+  "reference": {
+    "final_temperature_c": 52.967782346984606,
+    "initial_temperature_c": 81.35901641845703,
+    "internal_temperature_state": true,
+    "name": "FULL/RK4",
+    "rk4_substeps_per_control_step": 10,
+    "role": "ground_truth_baseline",
+    "temperature_input": false,
+    "terminated": false,
+    "termination_reason": null,
+    "timing": {
+      "control_steps_completed": 1000000,
+      "rk4_substeps_completed": 10000000,
+      "rk4_substeps_per_control_step": 10,
+      "simulated_seconds_per_wall_second": 4.173487933350309,
+      "wall_time_s": 239.60773721399983
+    },
+    "true_temperature_dependence": true
+  },
+  "scenario": {
+    "amplitudes_v": [
+      6.0,
+      5.0,
+      4.0
+    ],
+    "frequencies_hz": [
+      0.5,
+      1.7,
+      3.1
+    ],
+    "kind": "multisine",
+    "name": "multisine",
+    "phases_rad": [
+      0.0,
+      0.7,
+      1.3
+    ]
+  },
+  "schema_version": 1
+}
