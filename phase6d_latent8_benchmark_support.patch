@@ -1,0 +1,129 @@
+--- a/src/r2dn_dc_motor/compare_r2dn_rk4.py
++++ b/src/r2dn_dc_motor/compare_r2dn_rk4.py
+@@ -5,11 +5,13 @@
+ import argparse
+ import json
+ from pathlib import Path
++from typing import Any
+ 
+ from r2dn_dc_motor.data import Phase4Dataset
+ from r2dn_dc_motor.models.jax_runtime import inspect_jax_runtime
+ from r2dn_dc_motor.models.r2dn_phase6b import load_phase6b_checkpoint
+ from r2dn_dc_motor.models.r2dn_phase6d import load_phase6d_checkpoint
++from r2dn_dc_motor.models.r2dn_training import load_phase6_checkpoint
+ from r2dn_dc_motor.phase2_spec import load_phase2_spec
+ from r2dn_dc_motor.phase6_spec import load_phase6_spec
+ from r2dn_dc_motor.phase6b_spec import STRESS_SCENARIOS, load_phase6b_spec
+@@ -28,8 +30,9 @@
+ def build_parser() -> argparse.ArgumentParser:
+     parser = argparse.ArgumentParser(
+         description=(
+-            "Compare a selected Phase-6B or Phase-6D R2DN checkpoint against the canonical "
+-            "FULL electrothermal RK4 solver on the same long voltage trace."
++            "Compare a selected Phase-6, Phase-6B, or Phase-6D R2DN checkpoint "
++            "against the canonical FULL electrothermal RK4 solver on the same "
++            "long voltage trace."
+         )
+     )
+     parser.add_argument(
+@@ -47,7 +50,10 @@
+         "--checkpoint-dir",
+         type=Path,
+         default=Path("checkpoints/phase6b/r2dn-v2"),
+-        help="selected and validated Phase-6B or Phase-6D checkpoint directory",
++        help=(
++            "selected and validated Phase-6, Phase-6B, or Phase-6D "
++            "checkpoint directory"
++        ),
+     )
+     parser.add_argument(
+         "--phase6b-report",
+@@ -100,6 +106,55 @@
+     return parser
+ 
+ 
++def load_benchmark_checkpoint(
++    checkpoint_directory: Path,
++    *,
++    dataset: Phase4Dataset,
++    phase6: Any,
++    phase6b: Any,
++    phase6d: Any,
++) -> tuple[Any, bool]:
++    """Load a validated Phase-6, Phase-6B, or Phase-6D checkpoint."""
++
++    manifest_payload = json.loads(
++        (checkpoint_directory / "manifest.json").read_text(encoding="utf-8")
++    )
++    checkpoint_phase = str(manifest_payload.get("phase"))
++    if checkpoint_phase == "6D":
++        return (
++            load_phase6d_checkpoint(
++                checkpoint_directory,
++                dataset=dataset,
++                phase6d=phase6d,
++                phase6=phase6,
++            ),
++            False,
++        )
++    if checkpoint_phase == "6B":
++        return (
++            load_phase6b_checkpoint(
++                checkpoint_directory,
++                dataset=dataset,
++                phase6b=phase6b,
++                phase6=phase6,
++            ),
++            True,
++        )
++    if checkpoint_phase == "6":
++        return (
++            load_phase6_checkpoint(
++                checkpoint_directory,
++                dataset=dataset,
++                spec=phase6,
++            ),
++            False,
++        )
++    raise ValueError(
++        "unsupported R2DN checkpoint phase: "
++        f"{manifest_payload.get('phase')!r}; expected 6, 6B, or 6D"
++    )
++
++
+ def main(argv: list[str] | None = None) -> int:
+     parser = build_parser()
+     args = parser.parse_args(argv)
+@@ -131,26 +186,13 @@
+     print(runtime.summary().replace("PHASE 6", "R2DN BENCHMARK"), flush=True)
+ 
+     dataset = Phase4Dataset(args.dataset)
+-    manifest_payload = json.loads(
+-        (args.checkpoint_dir / "manifest.json").read_text(encoding="utf-8")
++    checkpoint, require_phase6b_model_match = load_benchmark_checkpoint(
++        args.checkpoint_dir,
++        dataset=dataset,
++        phase6=phase6,
++        phase6b=phase6b,
++        phase6d=phase6d,
+     )
+-    checkpoint_phase = str(manifest_payload.get("phase"))
+-    if checkpoint_phase == "6D":
+-        checkpoint = load_phase6d_checkpoint(
+-            args.checkpoint_dir,
+-            dataset=dataset,
+-            phase6d=phase6d,
+-            phase6=phase6,
+-        )
+-        require_phase6b_model_match = False
+-    else:
+-        checkpoint = load_phase6b_checkpoint(
+-            args.checkpoint_dir,
+-            dataset=dataset,
+-            phase6b=phase6b,
+-            phase6=phase6,
+-        )
+-        require_phase6b_model_match = True
+     anchor, phase6b_report = load_benchmark_anchor(
+         dataset,
+         args.phase6b_report,

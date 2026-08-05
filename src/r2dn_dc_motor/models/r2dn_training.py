@@ -6,7 +6,7 @@ import hashlib
 import json
 import math
 import shutil
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -31,6 +31,8 @@ from r2dn_dc_motor.phase6_spec import (
 )
 
 ProgressCallback = Callable[[str], None]
+MINIMUM_NONFINITE_RETRY_BUDGET = 10
+NONFINITE_RETRY_BUDGET_FRACTION = 0.05
 ALLOWED_TRAINING_FEATURES = (
     "armature_current_a",
     "angular_speed_rad_s",
@@ -72,6 +74,18 @@ class R2DNRunResult:
     def selection_score(self) -> float:
         return self.validation.free_rollout_nrmse
 
+    @property
+    def nonfinite_batch_retries(self) -> int:
+        """Number of rejected minibatches before finite optimizer updates."""
+
+        return max(
+            (
+                int(record.get("nonfinite_batch_retries", 0))
+                for record in self.history
+            ),
+            default=0,
+        )
+
     def summary(self) -> dict[str, Any]:
         return {
             "role": self.role,
@@ -80,6 +94,7 @@ class R2DNRunResult:
             "feature_size": self.architecture.features,
             "hidden_sizes": list(self.architecture.hidden),
             "update_count": self.update_count,
+            "nonfinite_batch_retries": self.nonfinite_batch_retries,
             "contractivity_margin": self.contractivity_margin,
             "validation": self.validation.to_dict(),
         }
@@ -348,6 +363,7 @@ def _train_single_run(
     validation_window_seed: int,
     role: str,
     progress: ProgressCallback,
+    optimizer_override: Mapping[str, Any] | None = None,
 ) -> R2DNRunResult:
     try:
         import jax
@@ -369,11 +385,35 @@ def _train_single_run(
     )
     adapter = OfficialR2DNAdapter(architecture)
     parameters, _ = adapter.initialize(seed=seed, batch_size=1)
+    optimizer_settings = dict(spec.optimizer)
+    if optimizer_override is not None:
+        optimizer_settings.update(optimizer_override)
+    schedule_name = str(optimizer_settings.get("schedule", "constant"))
+    initial_learning_rate = float(
+        optimizer_settings.get(
+            "initial_learning_rate",
+            optimizer_settings["learning_rate"],
+        )
+    )
+    final_learning_rate = float(
+        optimizer_settings.get("final_learning_rate", initial_learning_rate)
+    )
+    if schedule_name == "constant":
+        learning_rate: Any = initial_learning_rate
+    elif schedule_name == "cosine_decay":
+        total_scheduled_updates = sum(stage.updates for stage in stages)
+        learning_rate = optax.cosine_decay_schedule(
+            init_value=initial_learning_rate,
+            decay_steps=max(total_scheduled_updates - 1, 1),
+            alpha=final_learning_rate / initial_learning_rate,
+        )
+    else:
+        raise ValueError(f"unsupported learning-rate schedule: {schedule_name}")
     optimizer = optax.chain(
-        optax.clip_by_global_norm(float(spec.optimizer["gradient_clip_norm"])),
+        optax.clip_by_global_norm(float(optimizer_settings["gradient_clip_norm"])),
         optax.adamw(
-            learning_rate=float(spec.optimizer["learning_rate"]),
-            weight_decay=float(spec.optimizer["weight_decay"]),
+            learning_rate=learning_rate,
+            weight_decay=float(optimizer_settings["weight_decay"]),
         ),
     )
     optimizer_state = optimizer.init(parameters)
@@ -384,6 +424,7 @@ def _train_single_run(
     )
     history: list[dict[str, Any]] = []
     total_updates = 0
+    total_nonfinite_retries = 0
 
     for stage in stages:
         train_step = _make_train_step(
@@ -395,73 +436,107 @@ def _train_single_run(
             jnp=jnp,
             optax=optax,
         )
-        for stage_update in range(1, stage.updates + 1):
-            window = train_sampler.sample(
-                batch_size=stage.batch_size,
-                burn_in_steps=profile.burn_in_steps,
-                rollout_steps=stage.rollout_steps,
+        stage_updates = 0
+        stage_nonfinite_retries = 0
+        retry_budget = max(
+            MINIMUM_NONFINITE_RETRY_BUDGET,
+            math.ceil(stage.updates * NONFINITE_RETRY_BUDGET_FRACTION),
+        )
+        while stage_updates < stage.updates:
+            # Execute at most one logging interval asynchronously. The device-side
+            # finite guard prevents a bad long-rollout minibatch from modifying
+            # either parameters or Adam state. The host synchronizes once per
+            # interval, counts only applied updates, and deterministically samples
+            # replacement windows for rejected batches.
+            attempts = min(
+                profile.history_log_interval,
+                stage.updates - stage_updates,
             )
-            parameters, optimizer_state, metrics = train_step(
-                parameters,
-                optimizer_state,
-                window.observations,
-                window.controls,
-            )
-            total_updates += 1
-            should_log = (
-                stage_update == 1
-                or stage_update == stage.updates
-                or stage_update % profile.history_log_interval == 0
-            )
-            if should_log:
-                # Converting a device scalar to float synchronizes the accelerator.
-                # Do it only at locked logging intervals so CUDA can execute the
-                # intervening updates asynchronously. Any non-finite update propagates
-                # and is therefore caught at the next interval (at most 50 updates).
-                metric_values = {
-                    name: float(value)
-                    for name, value in zip(
-                        (
-                            "total_loss",
-                            "one_step_loss",
-                            "rollout_loss",
-                            "reconstruction_loss",
-                            "gradient_norm",
-                        ),
-                        metrics,
-                        strict=True,
-                    )
-                }
-                if not all(
-                    math.isfinite(value) for value in metric_values.values()
-                ):
-                    non_finite = ", ".join(
-                        f"{name}={value!r}"
-                        for name, value in metric_values.items()
-                        if not math.isfinite(value)
-                    )
-                    finite_context = ", ".join(
-                        f"{name}={value:.6g}"
-                        for name, value in metric_values.items()
-                        if math.isfinite(value)
-                    )
-                    raise FloatingPointError(
-                        f"non-finite Phase-6 metric at {stage.name} "
-                        f"update {stage_update}: {non_finite}; "
-                        f"finite metrics: {finite_context}"
-                    )
-                record = {
-                    "stage": stage.name,
-                    "stage_update": stage_update,
-                    "global_update": total_updates,
-                    **metric_values,
-                }
-                history.append(record)
-                progress(
-                    f"{role} latent={latent_size} seed={seed} "
-                    f"{stage.name} {stage_update}/{stage.updates}: "
-                    f"loss={metric_values['total_loss']:.6g}"
+            interval_metrics: list[Any] = []
+            interval_applied: list[Any] = []
+            for _ in range(attempts):
+                window = train_sampler.sample(
+                    batch_size=stage.batch_size,
+                    burn_in_steps=profile.burn_in_steps,
+                    rollout_steps=stage.rollout_steps,
                 )
+                parameters, optimizer_state, metrics, update_applied = train_step(
+                    parameters,
+                    optimizer_state,
+                    window.observations,
+                    window.controls,
+                )
+                interval_metrics.append(metrics)
+                interval_applied.append(update_applied)
+
+            applied_mask = np.asarray(
+                jax.device_get(jnp.stack(interval_applied)),
+                dtype=bool,
+            )
+            metric_matrix = np.asarray(
+                jax.device_get(
+                    jnp.stack(
+                        [jnp.stack(values) for values in interval_metrics],
+                    )
+                ),
+                dtype=np.float64,
+            )
+            applied_count = int(np.count_nonzero(applied_mask))
+            rejected_count = attempts - applied_count
+            stage_updates += applied_count
+            total_updates += applied_count
+            stage_nonfinite_retries += rejected_count
+            total_nonfinite_retries += rejected_count
+
+            if stage_nonfinite_retries > retry_budget:
+                raise FloatingPointError(
+                    f"Phase-6 non-finite retry budget exceeded at {stage.name}: "
+                    f"rejected={stage_nonfinite_retries}, budget={retry_budget}, "
+                    f"applied={stage_updates}/{stage.updates}"
+                )
+            if applied_count == 0:
+                progress(
+                    f"{role} latent={latent_size} seed={seed} {stage.name}: "
+                    f"rejected {rejected_count} non-finite minibatch(es), "
+                    f"retrying ({stage_nonfinite_retries}/{retry_budget})"
+                )
+                continue
+
+            last_finite = int(np.flatnonzero(applied_mask)[-1])
+            metric_values = {
+                name: float(value)
+                for name, value in zip(
+                    (
+                        "total_loss",
+                        "one_step_loss",
+                        "rollout_loss",
+                        "reconstruction_loss",
+                        "gradient_norm",
+                    ),
+                    metric_matrix[last_finite],
+                    strict=True,
+                )
+            }
+            if not all(math.isfinite(value) for value in metric_values.values()):
+                raise AssertionError("finite-guard accepted a non-finite update")
+            record = {
+                "stage": stage.name,
+                "stage_update": stage_updates,
+                "global_update": total_updates,
+                "nonfinite_batch_retries": total_nonfinite_retries,
+                **metric_values,
+            }
+            history.append(record)
+            retry_suffix = (
+                f", rejected_nonfinite={stage_nonfinite_retries}"
+                if stage_nonfinite_retries
+                else ""
+            )
+            progress(
+                f"{role} latent={latent_size} seed={seed} "
+                f"{stage.name} {stage_updates}/{stage.updates}: "
+                f"loss={metric_values['total_loss']:.6g}{retry_suffix}"
+            )
 
     validation_sampler = R2DNWindowSampler(
         dataset,
@@ -494,6 +569,75 @@ def _train_single_run(
         contractivity_margin=margin,
         validation=validation,
         history=tuple(history),
+    )
+
+
+def train_r2dn_run(
+    dataset: Phase4Dataset,
+    *,
+    spec: Phase6Spec,
+    profile: TrainingProfile,
+    latent_size: int,
+    seed: int,
+    stages: Sequence[CurriculumStage],
+    validation_horizon_steps: int,
+    validation_window_seed: int,
+    role: str,
+    progress: ProgressCallback | None = None,
+) -> R2DNRunResult:
+    """Train one auditable run using the frozen Phase-6 optimizer and loss.
+
+    Phase 6B uses this narrow public entry point to repeat the exact Phase-6
+    curriculum over a wider latent-size and seed catalog without changing the
+    historical Phase-6 study or checkpoint contract.
+    """
+
+    return _train_single_run(
+        dataset,
+        spec=spec,
+        profile=profile,
+        latent_size=latent_size,
+        seed=seed,
+        stages=stages,
+        validation_horizon_steps=validation_horizon_steps,
+        validation_window_seed=validation_window_seed,
+        role=role,
+        progress=progress or (lambda _: None),
+    )
+
+
+def train_r2dn_run_with_optimizer(
+    dataset: Phase4Dataset,
+    *,
+    spec: Phase6Spec,
+    profile: TrainingProfile,
+    latent_size: int,
+    seed: int,
+    stages: Sequence[CurriculumStage],
+    validation_horizon_steps: int,
+    validation_window_seed: int,
+    role: str,
+    optimizer: Mapping[str, Any],
+    progress: ProgressCallback | None = None,
+) -> R2DNRunResult:
+    """Train one run with an explicitly audited optimizer ablation.
+
+    Historical Phase-6/6B/6D/6E calls continue through :func:`train_r2dn_run`
+    and therefore retain the frozen constant-learning-rate optimizer.
+    """
+
+    return _train_single_run(
+        dataset,
+        spec=spec,
+        profile=profile,
+        latent_size=latent_size,
+        seed=seed,
+        stages=stages,
+        validation_horizon_steps=validation_horizon_steps,
+        validation_window_seed=validation_window_seed,
+        role=role,
+        progress=progress or (lambda _: None),
+        optimizer_override=optimizer,
     )
 
 
@@ -578,23 +722,47 @@ def _make_train_step(
         optimizer_state: Any,
         observations: Any,
         controls: Any,
-    ) -> tuple[Any, Any, tuple[Any, Any, Any, Any, Any]]:
+    ) -> tuple[Any, Any, tuple[Any, Any, Any, Any, Any], Any]:
         (total_loss, components), gradients = value_and_gradient(
             parameters,
             observations,
             controls,
         )
         gradient_norm = optax.tree.norm(gradients)
-        updates, optimizer_state = optimizer.update(
+        finite = jnp.all(
+            jnp.isfinite(
+                jnp.stack((total_loss, *components, gradient_norm)),
+            )
+        )
+        for leaf in jax.tree_util.tree_leaves(gradients):
+            finite = jnp.logical_and(finite, jnp.all(jnp.isfinite(leaf)))
+        for leaf in jax.tree_util.tree_leaves(parameters):
+            finite = jnp.logical_and(finite, jnp.all(jnp.isfinite(leaf)))
+        for leaf in jax.tree_util.tree_leaves(optimizer_state):
+            finite = jnp.logical_and(finite, jnp.all(jnp.isfinite(leaf)))
+
+        updates, next_optimizer_state = optimizer.update(
             gradients,
             optimizer_state,
             parameters,
         )
-        parameters = optax.apply_updates(parameters, updates)
+        next_parameters = optax.apply_updates(parameters, updates)
+        for leaf in jax.tree_util.tree_leaves(next_parameters):
+            finite = jnp.logical_and(finite, jnp.all(jnp.isfinite(leaf)))
+        for leaf in jax.tree_util.tree_leaves(next_optimizer_state):
+            finite = jnp.logical_and(finite, jnp.all(jnp.isfinite(leaf)))
+
+        parameters, optimizer_state = jax.lax.cond(
+            finite,
+            lambda _: (next_parameters, next_optimizer_state),
+            lambda state: state,
+            (parameters, optimizer_state),
+        )
         return (
             parameters,
             optimizer_state,
             (total_loss, *components, gradient_norm),
+            finite,
         )
 
     return train_step

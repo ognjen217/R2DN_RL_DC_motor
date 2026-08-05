@@ -1,0 +1,158 @@
+{
+  "accuracy": {
+    "combined_nrmse": 0.30701660667173564,
+    "compared_steps": 1000000,
+    "current_nrmse": 0.26861889847496995,
+    "current_rmse_a": 1.0146780446758648,
+    "final_current_error_a": -1.7642717207918261,
+    "final_speed_error_rad_s": 24.266865172999857,
+    "horizons": [
+      {
+        "combined_nrmse": 0.3636546630178199,
+        "current_nrmse": 0.26946535987213177,
+        "current_rmse_a": 1.0178754585594312,
+        "duration_s": 1.0,
+        "horizon_steps": 1000,
+        "speed_nrmse": 0.4380386372207263,
+        "speed_rmse_rad_s": 28.143611906832195
+      },
+      {
+        "combined_nrmse": 0.30444087356513383,
+        "current_nrmse": 0.247297604225662,
+        "current_rmse_a": 0.9341392245047441,
+        "duration_s": 10.0,
+        "horizon_steps": 10000,
+        "speed_nrmse": 0.352437775981025,
+        "speed_rmse_rad_s": 22.643828981503635
+      },
+      {
+        "combined_nrmse": 0.30804487798352126,
+        "current_nrmse": 0.2641931238480852,
+        "current_rmse_a": 0.9979601727388109,
+        "duration_s": 100.0,
+        "horizon_steps": 100000,
+        "speed_nrmse": 0.34638892449839553,
+        "speed_rmse_rad_s": 22.25519539043673
+      },
+      {
+        "combined_nrmse": 0.30701660667173564,
+        "current_nrmse": 0.26861889847496995,
+        "current_rmse_a": 1.0146780446758648,
+        "duration_s": 1000.0,
+        "horizon_steps": 1000000,
+        "speed_nrmse": 0.3411191594246184,
+        "speed_rmse_rad_s": 21.91661744211332
+      }
+    ],
+    "maximum_absolute_current_error_a": 2.85188361016516,
+    "maximum_absolute_speed_error_rad_s": 54.16856296394376,
+    "speed_nrmse": 0.3411191594246184,
+    "speed_rmse_rad_s": 21.91661744211332
+  },
+  "anchor": {
+    "burn_in_steps": 250,
+    "initial_current_a": 3.348219871520996,
+    "initial_speed_rad_s": 4.489734649658203,
+    "initial_temperature_c": 81.35901641845703,
+    "split": "validation",
+    "start_step": 6152,
+    "trajectory_id": "validation-piecewise_constant_voltage-0009"
+  },
+  "benchmark": "phase6c_r2dn_vs_full_rk4",
+  "chunk_steps": 10000,
+  "control_period_s": 0.001,
+  "control_steps": 1000000,
+  "dataset_fingerprint": "d4dbf5b72521f29006f9a5ac802115ca83505d0ec08845490580899e7a7df070",
+  "duration_s": 1000.0,
+  "hardware": {
+    "jax": {
+      "backend": "gpu",
+      "cuda12_pjrt_version": "0.5.3",
+      "cuda12_plugin_version": "0.5.3",
+      "cuda_active": true,
+      "device_count": 1,
+      "device_kinds": [
+        "NVIDIA GeForce RTX 5050 Laptop GPU"
+      ],
+      "device_platforms": [
+        "gpu"
+      ],
+      "jax_version": "0.5.3",
+      "jaxlib_version": "0.5.3"
+    },
+    "machine": "x86_64",
+    "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
+    "processor": "unknown",
+    "python": "3.13.7"
+  },
+  "interpretation": {
+    "accuracy_reference": "FULL electrothermal plant integrated by the locked classical RK4 solver with ten 0.1 ms substeps per 1 ms control interval.",
+    "compared_outputs": "Armature current and angular speed only; R2DN does not predict the hidden winding temperature.",
+    "load_torque": "The future FULL/RK4 rollout uses the declared default constant load. Load is intentionally unavailable to the frozen R2DN interface.",
+    "speed_claim": "The measured ratio compares the current NumPy/Python FULL-RK4 implementation on CPU with the current JAX R2DN implementation on the recorded device. It is not hardware-independent algorithmic speedup.",
+    "stability_claim": "A finite 1000-second matched rollout is empirical evidence, not a formal infinite-horizon stability or passivity proof."
+  },
+  "model": {
+    "checkpoint_phase": "6",
+    "contractivity_margin": 0.00544023560360074,
+    "latent_size": 8,
+    "observation_std": [
+      3.777388897194206,
+      64.24915410521362
+    ],
+    "parameter_sha256": "7e6c5fda1d0015d61d28ec77bec8dd0e6653406d5839e484f49c52c22cdb07f5",
+    "seed": 29,
+    "selected_variant": null,
+    "selection_validation_nrmse": 0.09933177381753922,
+    "type": "ContractingR2DN"
+  },
+  "passed": true,
+  "phase6b_report_passed": true,
+  "reference_final_temperature_c": 52.967782346984606,
+  "rk4_terminated": false,
+  "rk4_termination_reason": null,
+  "runtime": {
+    "materialized_trace_bytes": {
+      "r2dn_current_and_speed": 16000000,
+      "rk4_current_speed_and_temperature": 24000000,
+      "scope": "Array payload only; this is not host-process or JAX allocator peak memory."
+    },
+    "r2dn": {
+      "cold_simulated_seconds_per_wall_second": 52.164220066822885,
+      "cold_wall_time_s": 19.17022815100063,
+      "warm_burn_in_wall_time_s": 0.005104613002913538,
+      "warm_simulated_seconds_per_wall_second": 53.82467546588918,
+      "warm_wall_time_s": 18.578839377001714
+    },
+    "rk4": {
+      "control_steps_completed": 1000000,
+      "rk4_substeps_completed": 10000000,
+      "rk4_substeps_per_control_step": 10,
+      "simulated_seconds_per_wall_second": 4.182226497650104,
+      "wall_time_s": 239.10708818900093
+    },
+    "speedup_rk4_over_r2dn_cold": 12.472834767828273,
+    "speedup_rk4_over_r2dn_warm": 12.86986142336672,
+    "timed_scope": "Both methods materialize the complete current/speed trace. R2DN cold time includes JIT compilation and burn-in; warm time includes burn-in, chunk dispatch, device execution, and device-to-host trace transfer."
+  },
+  "scenario": {
+    "amplitudes_v": [
+      6.0,
+      5.0,
+      4.0
+    ],
+    "frequencies_hz": [
+      0.5,
+      1.7,
+      3.1
+    ],
+    "kind": "multisine",
+    "name": "multisine",
+    "phases_rad": [
+      0.0,
+      0.7,
+      1.3
+    ]
+  },
+  "schema_version": 1
+}

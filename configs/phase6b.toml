@@ -1,0 +1,141 @@
+schema_version = 1
+
+[phase]
+number = "6B"
+name = "extended_latent_search_and_autoregressive_stress"
+status = "implemented"
+
+[search]
+fit_split = "train"
+selection_split = "validation"
+id_test_used_for_selection = false
+ood_test_used_for_selection = false
+aggregation = "median"
+mode = "min"
+near_tie_policy = "smallest_within_relative_tolerance"
+reuse_phase6_checkpoint_when_selected_latent_matches = true
+
+[stress]
+splits = ["validation", "id_test", "ood_test"]
+control_period_s = 0.001
+energy_definition = "electromagnetic_plus_kinetic"
+input_work_definition = "sum_u_i_dt"
+synthetic_stress_used_for_selection = false
+held_out_replay_used_for_selection = false
+
+[[stress.scenarios]]
+name = "zero_voltage"
+kind = "constant"
+amplitude_v = 0.0
+
+[[stress.scenarios]]
+name = "constant_positive"
+kind = "constant"
+amplitude_v = 10.0
+
+[[stress.scenarios]]
+name = "constant_negative"
+kind = "constant"
+amplitude_v = -10.0
+
+[[stress.scenarios]]
+name = "prbs"
+kind = "prbs"
+amplitude_v = 18.0
+hold_steps = 50
+seed = 62011
+
+[[stress.scenarios]]
+name = "sine"
+kind = "sine"
+amplitude_v = 15.0
+frequency_hz = 1.0
+phase_rad = 0.0
+
+[[stress.scenarios]]
+name = "multisine"
+kind = "multisine"
+amplitudes_v = [6.0, 5.0, 4.0]
+frequencies_hz = [0.5, 1.7, 3.1]
+phases_rad = [0.0, 0.7, 1.3]
+
+[[stress.scenarios]]
+name = "positive_voltage_limit"
+kind = "constant"
+amplitude_v = 20.0
+
+[[stress.scenarios]]
+name = "negative_voltage_limit"
+kind = "constant"
+amplitude_v = -20.0
+
+[profiles.ci]
+base_phase6_profile = "ci"
+candidate_latent_sizes = [4, 6]
+pilot_seeds = [7, 11, 13]
+pilot_validation_horizon_steps = 20
+pilot_validation_seed = 6007
+validation_windows = 2
+tie_relative_tolerance = 0.03
+adaptive_enabled = false
+adaptive_reference_latent = 0
+adaptive_boundary_latent = 0
+adaptive_candidate_latent = 0
+adaptive_improvement_threshold = 0.05
+final_training_seeds = [7]
+selection_horizon_steps = 50
+selection_validation_seed = 6008
+stress_horizon_steps = [20, 50]
+stress_chunk_steps = 10
+stress_anchors_per_split = 1
+stress_anchor_seed = 63001
+perturbation_epsilon_normalized = 0.001
+replay_horizon_steps = [20, 50]
+replay_windows_per_split = 1
+replay_window_seed = 64001
+
+[profiles.final]
+base_phase6_profile = "final"
+candidate_latent_sizes = [4, 6, 8, 10, 12, 16]
+pilot_seeds = [1701, 2701, 3701]
+pilot_validation_horizon_steps = 500
+pilot_validation_seed = 61001
+validation_windows = 8
+tie_relative_tolerance = 0.03
+adaptive_enabled = true
+adaptive_reference_latent = 12
+adaptive_boundary_latent = 16
+adaptive_candidate_latent = 24
+adaptive_improvement_threshold = 0.05
+final_training_seeds = [17, 29, 43]
+selection_horizon_steps = 5000
+selection_validation_seed = 61002
+stress_horizon_steps = [10000, 100000, 1000000]
+stress_chunk_steps = 10000
+stress_anchors_per_split = 4
+stress_anchor_seed = 63001
+perturbation_epsilon_normalized = 0.001
+replay_horizon_steps = [1000, 5000, 10000]
+replay_windows_per_split = 4
+replay_window_seed = 64001
+
+[validation]
+maximum_absolute_normalized_prediction = 25.0
+maximum_latent_norm = 10000.0
+tail_fraction = 0.10
+latent_tail_growth_ratio_limit = 1.20
+unforced_energy_tail_growth_ratio_limit = 1.05
+perturbation_tail_growth_ratio_limit = 1.20
+perturbation_absolute_rms_limit_normalized = 0.10
+phase7_gate_claimed = false
+required_checks = [
+    "latent_catalog_is_fully_evaluated",
+    "pilot_uses_three_seeds_and_fixed_validation_windows",
+    "architecture_selection_uses_locked_median_and_tie_rule",
+    "final_checkpoint_uses_locked_validation_selection",
+    "selection_excludes_id_ood_and_stress_results",
+    "held_out_replay_is_finite",
+    "long_stress_rollouts_are_finite_and_physically_bounded",
+    "zero_input_has_no_sustained_tail_energy_growth",
+    "autoregressive_perturbations_have_no_sustained_tail_growth",
+]

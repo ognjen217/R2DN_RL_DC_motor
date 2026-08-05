@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "r2dn-dc-motor-control"
-version = "0.7.1"
+version = "0.12.0"
 description = "R2DN world-model experiments for electrothermal DC-motor control"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -53,6 +53,11 @@ validate-phase3 = "r2dn_dc_motor.validate_phase3:main"
 validate-phase4 = "r2dn_dc_motor.validate_phase4:main"
 validate-phase5 = "r2dn_dc_motor.validate_phase5:main"
 validate-phase6 = "r2dn_dc_motor.validate_phase6:main"
+validate-phase6b = "r2dn_dc_motor.validate_phase6b:main"
+validate-phase6d = "r2dn_dc_motor.validate_phase6d:main"
+validate-phase6e = "r2dn_dc_motor.validate_phase6e:main"
+validate-phase6f = "r2dn_dc_motor.validate_phase6f:main"
+compare-r2dn-rk4 = "r2dn_dc_motor.compare_r2dn_rk4:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -66,6 +71,10 @@ markers = [
     "phase4_gate: generates and verifies the deterministic Phase-4 CI dataset",
     "phase5_gate: fits and evaluates physical baselines on a tiny deterministic dataset",
     "phase6_gate: trains and validates the official R2DN on a tiny deterministic dataset",
+    "phase6b_gate: repeats latent search and runs a tiny autoregressive stress suite",
+    "phase6d_gate: runs a tiny controlled R2DN accuracy ablation",
+    "phase6e_gate: runs a tiny full-curriculum larger-latent search",
+    "phase6f_gate: runs a tiny controlled optimizer-floor ablation",
 ]
 
 [tool.ruff]

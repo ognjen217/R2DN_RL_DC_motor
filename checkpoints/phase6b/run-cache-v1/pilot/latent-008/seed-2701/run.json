@@ -1,0 +1,153 @@
+{
+  "architecture": {
+    "do_polar_param": true,
+    "features": 32,
+    "hidden": [
+      32,
+      32
+    ],
+    "init_method": "long_memory",
+    "input_size": 3,
+    "output_size": 2,
+    "state_size": 8
+  },
+  "dataset_fingerprint": "d4dbf5b72521f29006f9a5ac802115ca83505d0ec08845490580899e7a7df070",
+  "history": [
+    {
+      "global_update": 1,
+      "gradient_norm": 278297.3125,
+      "one_step_loss": 775.8199462890625,
+      "reconstruction_loss": 497.0932922363281,
+      "rollout_loss": 0.0,
+      "stage": "pilot_one_step",
+      "stage_update": 1,
+      "total_loss": 825.529296875
+    },
+    {
+      "global_update": 50,
+      "gradient_norm": 582.2371215820312,
+      "one_step_loss": 0.2984274625778198,
+      "reconstruction_loss": 1.0535469055175781,
+      "rollout_loss": 0.0,
+      "stage": "pilot_one_step",
+      "stage_update": 50,
+      "total_loss": 0.4037821590900421
+    },
+    {
+      "global_update": 100,
+      "gradient_norm": 111.93023681640625,
+      "one_step_loss": 0.09038280695676804,
+      "reconstruction_loss": 0.3797070384025574,
+      "rollout_loss": 0.0,
+      "stage": "pilot_one_step",
+      "stage_update": 100,
+      "total_loss": 0.12835350632667542
+    },
+    {
+      "global_update": 101,
+      "gradient_norm": 880.803466796875,
+      "one_step_loss": 0.06217283010482788,
+      "reconstruction_loss": 0.3491489589214325,
+      "rollout_loss": 0.8471460342407227,
+      "stage": "pilot_short_rollout",
+      "stage_update": 1,
+      "total_loss": 0.4721168875694275
+    },
+    {
+      "global_update": 150,
+      "gradient_norm": 59.90275955200195,
+      "one_step_loss": 0.06024673208594322,
+      "reconstruction_loss": 0.27919307351112366,
+      "rollout_loss": 0.029135560616850853,
+      "stage": "pilot_short_rollout",
+      "stage_update": 50,
+      "total_loss": 0.058650799095630646
+    },
+    {
+      "global_update": 200,
+      "gradient_norm": 37.077980041503906,
+      "one_step_loss": 0.04803904518485069,
+      "reconstruction_loss": 0.21391578018665314,
+      "rollout_loss": 0.03016156516969204,
+      "stage": "pilot_short_rollout",
+      "stage_update": 100,
+      "total_loss": 0.04979609325528145
+    },
+    {
+      "global_update": 201,
+      "gradient_norm": 28.43937873840332,
+      "one_step_loss": 0.020761875435709953,
+      "reconstruction_loss": 0.11653739213943481,
+      "rollout_loss": 0.019708070904016495,
+      "stage": "pilot_rollout",
+      "stage_update": 1,
+      "total_loss": 0.02230226993560791
+    },
+    {
+      "global_update": 250,
+      "gradient_norm": 182.67127990722656,
+      "one_step_loss": 0.19305333495140076,
+      "reconstruction_loss": 0.5936062335968018,
+      "rollout_loss": 0.24117469787597656,
+      "stage": "pilot_rollout",
+      "stage_update": 50,
+      "total_loss": 0.24101649224758148
+    },
+    {
+      "global_update": 300,
+      "gradient_norm": 21.6484375,
+      "one_step_loss": 0.01556974183768034,
+      "reconstruction_loss": 0.2618519365787506,
+      "rollout_loss": 0.01630714349448681,
+      "stage": "pilot_rollout",
+      "stage_update": 100,
+      "total_loss": 0.02135983109474182
+    },
+    {
+      "global_update": 350,
+      "gradient_norm": 14.45360279083252,
+      "one_step_loss": 0.0238974466919899,
+      "reconstruction_loss": 0.3513309061527252,
+      "rollout_loss": 0.007237537298351526,
+      "stage": "pilot_rollout",
+      "stage_update": 150,
+      "total_loss": 0.018429134041070938
+    },
+    {
+      "global_update": 400,
+      "gradient_norm": 6.912906646728516,
+      "one_step_loss": 0.014901542104780674,
+      "reconstruction_loss": 0.22232581675052643,
+      "rollout_loss": 0.009321225807070732,
+      "stage": "pilot_rollout",
+      "stage_update": 200,
+      "total_loss": 0.015162821859121323
+    }
+  ],
+  "parameter_sha256": "34880a940d61db1432f20876a0a82d30f682ba849c4816af950ca28481845bf4",
+  "protocol_sha256": "e8757ad8030d8b2d8f5b475fd531d2f037bc07a6930d7f0e8f470b6f86231761",
+  "schema_version": 1,
+  "summary": {
+    "contractivity_margin": 0.011488360352814198,
+    "feature_size": 32,
+    "hidden_sizes": [
+      32,
+      32
+    ],
+    "latent_size": 8,
+    "role": "phase6b_pilot",
+    "seed": 2701,
+    "update_count": 400,
+    "validation": {
+      "current_free_rollout_nrmse": 0.21171456575393677,
+      "finite": true,
+      "free_rollout_nrmse": 0.1845041662454605,
+      "horizon_steps": 500,
+      "maximum_absolute_normalized_prediction": 1.8240000009536743,
+      "one_step_nrmse": 0.13421198725700378,
+      "speed_free_rollout_nrmse": 0.15251395106315613,
+      "windows": 8
+    }
+  },
+  "validation_window_seed": 61001
+}

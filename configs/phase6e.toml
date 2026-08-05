@@ -1,0 +1,82 @@
+schema_version = 1
+
+[phase]
+number = "6E"
+name = "full_curriculum_larger_latent_search"
+status = "implemented"
+
+[selection]
+fit_split = "train"
+selection_split = "synthetic_validation_multisine"
+selection_reference = "full_rk4"
+id_test_used_for_selection = false
+ood_test_used_for_selection = false
+stress_used_for_selection = false
+canonical_phase6c_scenario_used_for_selection = false
+run_metric = "median_multisine_combined_nrmse"
+latent_aggregation = "median_across_seeds"
+mode = "min"
+near_tie_policy = "smallest_latent_within_relative_tolerance"
+
+[profiles.ci]
+base_phase6_profile = "ci"
+latent_sizes = [4, 6]
+seeds = [7]
+burn_in_steps = 20
+selection_duration_s = 0.02
+selection_chunk_steps = 10
+selection_split = "validation"
+selection_anchor_indices = [0]
+tie_relative_tolerance = 0.03
+target_combined_nrmse = 1.0
+
+[[profiles.ci.multisine_scenarios]]
+name = "selection_multisine_ci"
+kind = "multisine"
+amplitudes_v = [2.0]
+frequencies_hz = [1.25]
+phases_rad = [0.35]
+
+[profiles.final]
+base_phase6_profile = "final"
+latent_sizes = [8, 12, 16]
+seeds = [17, 29, 43]
+burn_in_steps = 250
+selection_duration_s = 100.0
+selection_chunk_steps = 10000
+selection_split = "validation"
+selection_anchor_indices = [0, 1, 2]
+tie_relative_tolerance = 0.03
+target_combined_nrmse = 0.20
+
+[[profiles.final.multisine_scenarios]]
+name = "selection_multisine_a"
+kind = "multisine"
+amplitudes_v = [5.5, 4.0, 3.0]
+frequencies_hz = [0.37, 1.13, 2.71]
+phases_rad = [0.20, 1.10, 2.00]
+
+[[profiles.final.multisine_scenarios]]
+name = "selection_multisine_b"
+kind = "multisine"
+amplitudes_v = [6.5, 3.5, 2.5]
+frequencies_hz = [0.61, 1.49, 3.43]
+phases_rad = [0.50, 1.60, 2.40]
+
+[[profiles.final.multisine_scenarios]]
+name = "selection_multisine_c"
+kind = "multisine"
+amplitudes_v = [5.0, 4.5, 3.5]
+frequencies_hz = [0.83, 1.91, 2.29]
+phases_rad = [1.00, 2.00, 0.40]
+
+[validation]
+maximum_safe_voltage_v = 20.0
+required_checks = [
+    "all_declared_latents_and_seeds_are_evaluated",
+    "all_training_and_selection_rollouts_are_finite",
+    "all_contractivity_margins_are_positive",
+    "selection_uses_only_locked_multisine_scenarios",
+    "canonical_phase6c_scenario_is_held_out",
+    "selected_checkpoint_matches_locked_median_rule",
+]

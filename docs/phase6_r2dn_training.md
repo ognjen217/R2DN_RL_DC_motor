@@ -89,6 +89,14 @@ Postojeći checkpoint može se namerno zameniti samo dodatkom
 Kratka provera celog mehanizma koristi `--profile ci` i Phase-4 `ci` dataset.
 Ona radi samo nekoliko gradient update-a, pa njena greška nije naučni rezultat.
 
+Tokom svakog treninga optimizer update se primenjuje samo ako su loss,
+neisečeni gradient norm, svi gradijenti, trenutni parametri i kandidat za novo
+stanje parametara/Adam-a konačni. Ako jedan autoregresivni minibatch
+overflow-uje, parametri i Adam stanje ostaju
+nepromenjeni, uzima se sledeći deterministički prozor, a odbijeni batch se
+beleži u istoriji. Budžet zato označava broj stvarno primenjenih konačnih
+update-a, a ne broj pokušaja.
+
 ## Granica faze
 
 Phase 6 je završena kada finalni trening za sva tri seed-a daje konačne loss,

@@ -1,0 +1,225 @@
+schema_version = 1
+
+[phase]
+number = "6D"
+name = "r2dn_accuracy_ablation"
+status = "implemented"
+
+[selection]
+fit_split = "train"
+selection_split = "validation"
+id_test_used_for_selection = false
+ood_test_used_for_selection = false
+stress_used_for_selection = false
+metric = "validation_free_rollout_nrmse"
+aggregation = "median_across_seeds"
+mode = "min"
+near_tie_policy = "first_simpler_variant_within_relative_tolerance"
+
+[screen]
+burn_in_steps = [250, 500, 1000]
+validation_horizon_steps = 10000
+validation_windows = 8
+validation_window_seed = 66001
+
+[profiles.ci]
+base_phase6_profile = "ci"
+seeds = [7]
+selection_horizon_steps = 50
+validation_windows = 2
+validation_window_seed = 66001
+tie_relative_tolerance = 0.03
+target_combined_nrmse = 1.0
+
+[[profiles.ci.variants]]
+name = "A_control"
+latent_size = 4
+burn_in_steps = 20
+curriculum = "ci_baseline"
+
+[[profiles.ci.variants]]
+name = "B_latent8"
+latent_size = 6
+burn_in_steps = 20
+curriculum = "ci_baseline"
+
+[[profiles.ci.variants]]
+name = "C_burnin1000"
+latent_size = 6
+burn_in_steps = 30
+curriculum = "ci_baseline"
+
+[[profiles.ci.variants]]
+name = "D_rollout5000"
+latent_size = 6
+burn_in_steps = 30
+curriculum = "ci_extended"
+
+[profiles.final]
+base_phase6_profile = "final"
+seeds = [17, 29, 43]
+selection_horizon_steps = 10000
+validation_windows = 8
+validation_window_seed = 66001
+tie_relative_tolerance = 0.03
+target_combined_nrmse = 0.20
+
+[[profiles.final.variants]]
+name = "A_control"
+latent_size = 4
+burn_in_steps = 250
+curriculum = "final_baseline"
+
+[[profiles.final.variants]]
+name = "B_latent8"
+latent_size = 8
+burn_in_steps = 250
+curriculum = "final_baseline"
+
+[[profiles.final.variants]]
+name = "C_burnin1000"
+latent_size = 8
+burn_in_steps = 1000
+curriculum = "final_baseline"
+
+[[profiles.final.variants]]
+name = "D_rollout5000"
+latent_size = 8
+burn_in_steps = 1000
+curriculum = "final_extended"
+
+[[curricula.ci_baseline]]
+name = "one_step"
+updates = 1
+rollout_steps = 1
+batch_size = 2
+one_step_weight = 1.0
+rollout_weight = 0.0
+reconstruction_weight = 0.10
+
+[[curricula.ci_baseline]]
+name = "short_rollout"
+updates = 1
+rollout_steps = 8
+batch_size = 2
+one_step_weight = 0.50
+rollout_weight = 0.50
+reconstruction_weight = 0.05
+
+[[curricula.ci_extended]]
+name = "one_step"
+updates = 1
+rollout_steps = 1
+batch_size = 2
+one_step_weight = 1.0
+rollout_weight = 0.0
+reconstruction_weight = 0.10
+
+[[curricula.ci_extended]]
+name = "short_rollout"
+updates = 1
+rollout_steps = 8
+batch_size = 2
+one_step_weight = 0.50
+rollout_weight = 0.50
+reconstruction_weight = 0.05
+
+[[curricula.ci_extended]]
+name = "extended_rollout"
+updates = 1
+rollout_steps = 12
+batch_size = 1
+one_step_weight = 0.05
+rollout_weight = 0.95
+reconstruction_weight = 0.005
+
+[[curricula.final_baseline]]
+name = "one_step"
+updates = 300
+rollout_steps = 1
+batch_size = 256
+one_step_weight = 1.0
+rollout_weight = 0.0
+reconstruction_weight = 0.10
+
+[[curricula.final_baseline]]
+name = "short_rollout"
+updates = 700
+rollout_steps = 10
+batch_size = 128
+one_step_weight = 0.50
+rollout_weight = 0.50
+reconstruction_weight = 0.05
+
+[[curricula.final_baseline]]
+name = "medium_rollout"
+updates = 1000
+rollout_steps = 100
+batch_size = 64
+one_step_weight = 0.25
+rollout_weight = 0.75
+reconstruction_weight = 0.02
+
+[[curricula.final_baseline]]
+name = "long_rollout"
+updates = 1000
+rollout_steps = 1000
+batch_size = 8
+one_step_weight = 0.10
+rollout_weight = 0.90
+reconstruction_weight = 0.01
+
+[[curricula.final_extended]]
+name = "one_step"
+updates = 300
+rollout_steps = 1
+batch_size = 256
+one_step_weight = 1.0
+rollout_weight = 0.0
+reconstruction_weight = 0.10
+
+[[curricula.final_extended]]
+name = "short_rollout"
+updates = 700
+rollout_steps = 10
+batch_size = 128
+one_step_weight = 0.50
+rollout_weight = 0.50
+reconstruction_weight = 0.05
+
+[[curricula.final_extended]]
+name = "medium_rollout"
+updates = 1000
+rollout_steps = 100
+batch_size = 64
+one_step_weight = 0.25
+rollout_weight = 0.75
+reconstruction_weight = 0.02
+
+[[curricula.final_extended]]
+name = "long_rollout"
+updates = 1000
+rollout_steps = 1000
+batch_size = 8
+one_step_weight = 0.10
+rollout_weight = 0.90
+reconstruction_weight = 0.01
+
+[[curricula.final_extended]]
+name = "very_long_rollout"
+updates = 300
+rollout_steps = 5000
+batch_size = 2
+one_step_weight = 0.05
+rollout_weight = 0.95
+reconstruction_weight = 0.005
+
+[validation]
+required_checks = [
+    "all_declared_variants_and_seeds_are_evaluated",
+    "all_runs_are_finite",
+    "all_contractivity_margins_are_positive",
+    "selection_uses_only_fixed_validation_windows",
+    "selected_checkpoint_matches_locked_median_rule",
+]
+

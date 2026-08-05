@@ -31,6 +31,16 @@ from r2dn_dc_motor.validation.phase6 import (
     generate_phase6_artifacts,
     run_phase6_validation,
 )
+from r2dn_dc_motor.validation.phase6b import (
+    Phase6BCheck,
+    Phase6BValidationReport,
+    ReplayErrorMetric,
+    StressRolloutMetric,
+    generate_phase6b_artifacts,
+    run_autoregressive_stress,
+    run_held_out_replay,
+    run_phase6b_validation,
+)
 
 __all__ = [
     "Phase2ValidationReport",
@@ -40,8 +50,12 @@ __all__ = [
     "Phase5ValidationReport",
     "Phase6Check",
     "Phase6ValidationReport",
+    "Phase6BCheck",
+    "Phase6BValidationReport",
     "BaselinePredictiveMetrics",
     "ProbeWindowResult",
+    "ReplayErrorMetric",
+    "StressRolloutMetric",
     "DatasetIntegrityCheck",
     "ValidationCheck",
     "generate_phase2_artifacts",
@@ -49,9 +63,13 @@ __all__ = [
     "generate_phase4_validation_artifacts",
     "generate_phase5_artifacts",
     "generate_phase6_artifacts",
+    "generate_phase6b_artifacts",
     "run_phase2_validation",
     "run_phase3_validation",
     "run_phase4_validation",
     "run_phase5_validation",
     "run_phase6_validation",
+    "run_autoregressive_stress",
+    "run_held_out_replay",
+    "run_phase6b_validation",
 ]

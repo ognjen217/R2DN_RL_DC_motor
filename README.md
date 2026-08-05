@@ -18,6 +18,14 @@ Implementirane su:
   za dataset i one-step/kratka/srednja/duga ID/OOD evaluacija;
 - **Faza 6** — curriculum trening zvaničnog R2DN-a, pilot latentnih dimenzija,
   ponavljanje za više seed-ova i verzionisan checkpoint vezan za dataset;
+- **Faza 6B** — proširena latentna pretraga sa tri pilot seed-a po arhitekturi,
+  10-sekundna analiza akumulacije greške i milion-koračni stability/energy
+  stress test spoljne autoregresivne petlje;
+- **Faza 6C** — upareno poređenje izabranog R2DN checkpoint-a sa kanonskim
+  FULL/RK4 simulatorom tokom 1000 s: tačnost, hladno/zagrejano vreme,
+  propusnost i izmereni odnos vremena;
+- **Faza 6D** — screening postojećih latent-4/latent-8 checkpoint-a i
+  kontrolisana latent/burn-in/rollout ablacijska studija za veću tačnost;
 - time-major format sekvenci i temperature-free model view;
 - observation burn-in i autoregresivni free-rollout adapter;
 - verzionisan format checkpoint manifesta;
@@ -55,6 +63,7 @@ python -m r2dn_dc_motor.validate_phase3
 python -m r2dn_dc_motor.validate_phase4 --spec-only
 python -m r2dn_dc_motor.validate_phase5 --spec-only
 python -m r2dn_dc_motor.validate_phase6 --spec-only
+python -m r2dn_dc_motor.validate_phase6b --spec-only
 pytest -v
 ruff check .
 ```
@@ -78,6 +87,7 @@ PHASE 3 GATE 1: PASS
 PHASE 4 SPEC: PASS
 PHASE 5 SPEC: PASS
 PHASE 6 SPEC: PASS
+PHASE 6B SPEC: PASS
 ```
 
 Za generisanje Phase-2 JSON izveštaja i PNG grafikona:
@@ -152,6 +162,123 @@ i komandovani napon nikad ne ulaze u trening. Ovaj validator potvrđuje trening
 i integritet checkpoint-a; čisto poređenje sa ISO-CAL i uslov za prelazak na RL
 pripadaju Fazi 7.
 
+Pošto je latent 8 pobedio na gornjoj granici početnog pilota, pre Faze 7
+pokreće se proširena Faza 6B:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 \
+python -m r2dn_dc_motor.validate_phase6b \
+  --search \
+  --stress \
+  --profile final \
+  --require-cuda \
+  --dataset data/phase4-full-v1 \
+  --phase6-checkpoint checkpoints/phase6/r2dn-v1 \
+  --cache-dir checkpoints/phase6b/run-cache-v1 \
+  --checkpoint-dir checkpoints/phase6b/r2dn-v2 \
+  --output-dir results/phase6b
+```
+
+Faza 6B poredi 4/6/8/10/12/16 sa tri seed-a po latentu i bira po medijani
+istih validation rollout-a; manji model unutar 3% od najbolje medijane ima
+prednost. Latent 24 pokreće se samo ako 16 pobedi 12 za više od 5%. Završeni
+run-ovi se odmah keširaju, pa se prekinut trening nastavlja bez ponavljanja.
+
+Nakon izbora, model se pušta do \(10^6\) koraka pod osam naponskih scenarija iz
+validation, ID i OOD burn-in režima. Test meri fizičke granice, `NaN/Inf`,
+latentnu normu, energiju, tail rast i osetljivost na malu perturbaciju. To je
+jak konačan numerički stress test, a ne formalni dokaz stabilnosti za
+\(k\to\infty\). ID/OOD i stress rezultati ne učestvuju u izboru modela.
+
+Za poređenje izabranog Phase-6B modela sa FULL/RK4 na potpuno istom
+milion-koračnom `multisine` rollout-u:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 \
+python -m r2dn_dc_motor.compare_r2dn_rk4 \
+  --require-cuda \
+  --dataset data/phase4-full-v1 \
+  --checkpoint-dir checkpoints/phase6b/r2dn-v2 \
+  --phase6b-report results/phase6b/phase6b_latent_and_stability.json \
+  --scenario multisine \
+  --duration-s 1000 \
+  --split validation \
+  --anchor-index 0 \
+  --chunk-steps 10000 \
+  --output-dir results/phase6c
+```
+
+R2DN i FULL/RK4 dobijaju isti početni izlaz, budući napon i opterećenje; FULL
+model se dodatno inicijalizuje stvarnom skrivenom temperaturom anchor-a, dok
+R2DN latentno stanje dobija isključivo iz dozvoljenog 250-koračnog burn-in-a.
+JSON odvaja hladno R2DN vreme sa JIT kompilacijom od zagrejanog vremena. Odnos
+vremena je end-to-end poređenje postojećih CPU/GPU implementacija i ne
+predstavlja hardverski nezavisnu tvrdnju o algoritamskom ubrzanju.
+
+Za povećanje preciznosti prvo se bez novog treninga porede postojeći latent-4
+i latent-8 checkpoint-i na istim 10 s validation ciljevima:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 \
+python -m r2dn_dc_motor.validate_phase6d \
+  --screen \
+  --profile final \
+  --require-cuda \
+  --dataset data/phase4-full-v1 \
+  --phase6b-checkpoint checkpoints/phase6b/r2dn-v2 \
+  --phase6-checkpoint checkpoints/phase6/r2dn-v1 \
+  --output-dir results/phase6d
+```
+
+Ako screening nije dovoljan, `--train` pokreće A–D ablacijski protokol sa
+seed-ovima 17/29/43. Varijante redom izoluju latent 4→8, burn-in 250→1000 i
+dodatni 5000-koračni rollout stage. Detaljan protokol i komande su u
+`docs/phase6d_accuracy_ablation.md`.
+
+Za pošteno poređenje većih latentnih prostora, Phase 6E trenira latentne
+dimenzije 8/12/16 punim Phase-6 curriculumom i seed-ovima 17/29/43. Jedini
+promenjeni faktor je latentna dimenzija. Izbor koristi tri nova 100 s
+`multisine` rollout-a sa FULL/RK4 referencom; kanonski Phase-6C scenario ostaje
+izdvojeni završni test.
+
+```bash
+CUDA_VISIBLE_DEVICES=0 \
+python -m r2dn_dc_motor.validate_phase6e \
+  --train \
+  --profile final \
+  --require-cuda \
+  --dataset data/phase4-full-v1 \
+  --phase6b-report results/phase6b/phase6b_latent_and_stability.json \
+  --cache-dir checkpoints/phase6e/run-cache-v1 \
+  --checkpoint-dir checkpoints/phase6e/r2dn-v1 \
+  --output-dir results/phase6e
+```
+
+Detaljan protokol, kriterijumi i završna benchmark komanda nalaze se u
+`docs/phase6e_larger_latent_search.md`.
+
+Phase 6F zatim proverava da li preostala greška latent-16/seed-43 modela dolazi
+od konstantnog koraka učenja i kratkog treninga. Postojeći Phase-6E checkpoint
+je baseline; dva nova treninga koriste cosine raspored `1e-3 → 1e-5` sa 3000 i
+6000 update-a. Arhitektura, seed, loss, burn-in i rollout curriculum ostaju
+nepromenjeni.
+
+```bash
+CUDA_VISIBLE_DEVICES=0 \
+python -m r2dn_dc_motor.validate_phase6f \
+  --train \
+  --profile final \
+  --require-cuda \
+  --dataset data/phase4-full-v1 \
+  --phase6b-report results/phase6b/phase6b_latent_and_stability.json \
+  --phase6e-checkpoint checkpoints/phase6e/r2dn-v1 \
+  --cache-dir checkpoints/phase6f/run-cache-v1 \
+  --checkpoint-dir checkpoints/phase6f/r2dn-v1 \
+  --output-dir results/phase6f
+```
+
+Detalji su u `docs/phase6f_optimizer_floor_ablation.md`.
+
 ## Struktura
 
 ```text
@@ -163,7 +290,11 @@ pripadaju Fazi 7.
 │   ├── phase3.toml
 │   ├── phase4.toml
 │   ├── phase5.toml
-│   └── phase6.toml
+│   ├── phase6.toml
+│   ├── phase6b.toml
+│   ├── phase6d.toml
+│   ├── phase6e.toml
+│   └── phase6f.toml
 ├── docs/
 │   ├── phase0_specification.md
 │   ├── phase1_design.md
@@ -172,6 +303,11 @@ pripadaju Fazi 7.
 │   ├── phase4_dataset.md
 │   ├── phase5_baselines.md
 │   ├── phase6_r2dn_training.md
+│   ├── phase6b_latent_and_stability.md
+│   ├── phase6c_r2dn_vs_rk4.md
+│   ├── phase6d_accuracy_ablation.md
+│   ├── phase6e_larger_latent_search.md
+│   ├── phase6f_optimizer_floor_ablation.md
 │   ├── references.md
 │   └── decisions/
 ├── src/r2dn_dc_motor/data/
@@ -189,11 +325,13 @@ pripadaju Fazi 7.
 │   ├── phase3.py
 │   ├── phase4.py
 │   ├── phase5.py
-│   └── phase6.py
+│   ├── phase6.py
+│   └── phase6b.py
 ├── src/r2dn_dc_motor/models/
 │   ├── checkpoint.py
 │   ├── isothermal_calibration.py
 │   ├── r2dn_adapter.py
+│   ├── r2dn_phase6b.py
 │   ├── r2dn_training.py
 │   └── temperature_probe.py
 ├── src/r2dn_dc_motor/
@@ -203,6 +341,7 @@ pripadaju Fazi 7.
 │   ├── phase4_spec.py
 │   ├── phase5_spec.py
 │   ├── phase6_spec.py
+│   ├── phase6b_spec.py
 │   ├── spec.py
 │   ├── validate_phase0.py
 │   ├── validate_phase1.py
@@ -210,7 +349,8 @@ pripadaju Fazi 7.
 │   ├── validate_phase3.py
 │   ├── validate_phase4.py
 │   ├── validate_phase5.py
-│   └── validate_phase6.py
+│   ├── validate_phase6.py
+│   └── validate_phase6b.py
 └── tests/
 ```
 
@@ -237,6 +377,11 @@ checkpoint-a na ID/OOD skupu, teacher forcing u rollout loss-u, promenjenu
 train-only normalizaciju, nekompletan curriculum, nekonačne loss/gradijent
 vrednosti i checkpoint sa promenjenim parametrima, istorijom ili upstream
 commitom.
+
+Faza 6B odbija nepotpun latent/seed katalog, različite validation prozore,
+izbor po jednom seed-u, drift pravila medijane i 3% tie-break-a, adaptivni
+latent 24 bez unapred definisanog 5% uslova, korišćenje ID/OOD/stress rezultata
+za izbor i najduži rollout koji postane nekonačan ili napusti fizički domen.
 
 ## R2DN referenca
 

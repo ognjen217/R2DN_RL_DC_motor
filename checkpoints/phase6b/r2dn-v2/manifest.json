@@ -1,0 +1,44 @@
+{
+  "adaptive_candidate_triggered": false,
+  "burn_in_steps": 250,
+  "contractivity_margin": 0.001855831709690392,
+  "dataset_fingerprint": "d4dbf5b72521f29006f9a5ac802115ca83505d0ec08845490580899e7a7df070",
+  "evaluated_latent_sizes": [
+    4,
+    6,
+    8,
+    10,
+    12,
+    16
+  ],
+  "feature_size": 32,
+  "hidden_sizes": [
+    32,
+    32
+  ],
+  "initialization": "long_memory",
+  "latent_size": 4,
+  "model_type": "ContractingR2DN",
+  "normalization_sha256": "9518aba29456d749f50e3be9d1f71a9fff47af0bd0347162a7305a8c7c432914",
+  "parameter_sha256": "34fd4e98b85fa4916c38660ce4a510a33508713b30417fa7615eb12e23ba05e3",
+  "phase": "6B",
+  "pilot_median_validation_nrmse": 0.11244598776102066,
+  "pilot_seeds": [
+    1701,
+    2701,
+    3701
+  ],
+  "polar_parameterization": true,
+  "protocol_sha256": "e8757ad8030d8b2d8f5b475fd531d2f037bc07a6930d7f0e8f470b6f86231761",
+  "schema_version": 1,
+  "seed": 17,
+  "selected_run_source": "phase6b_final_training",
+  "selection_horizon_steps": 5000,
+  "selection_metric": "validation_free_rollout_nrmse",
+  "selection_validation_seed": 61002,
+  "study_history_sha256": "a1e1d21ba6e640416e8e661bb3d3cd2ebddee6586cda7baa78d9795203c5825e",
+  "tie_relative_tolerance": 0.03,
+  "training_profile": "final",
+  "upstream_commit": "5e65ac9bb5a057d41232162133ac1454865b965b",
+  "validation_free_rollout_nrmse": 0.15589144825935364
+}

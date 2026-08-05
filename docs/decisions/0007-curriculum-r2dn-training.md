@@ -1,5 +1,21 @@
 # ADR 0007: R2DN curriculum training and validation-only selection
 
+## Numerical finite-update guard
+
+Every optimizer update is applied only when the complete loss tuple, raw
+gradient norm, every gradient leaf, the current state, and the candidate
+parameter/Adam state are finite.
+An invalid minibatch leaves both the parameters and Adam state unchanged. The
+deterministic sampler then supplies a replacement window, so the locked update
+budget counts only finite optimizer updates. Rejected minibatches are recorded
+in the training history, and a stage fails if more than 5% of its requested
+updates (with a minimum budget of ten retries) are rejected.
+
+This guard does not alter the loss, optimizer, learning rate, gradient clipping,
+curriculum horizons, or selection windows. It prevents asynchronous detection
+from observing an overflow only after a non-finite update has already poisoned
+the run.
+
 ## Status
 
 Accepted for Phase 6.
