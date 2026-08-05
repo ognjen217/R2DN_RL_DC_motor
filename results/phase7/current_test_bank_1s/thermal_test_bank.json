@@ -1,0 +1,1365 @@
+{
+  "aggregate": {
+    "by_category": {
+      "excitation_ood": {
+        "1s": {
+          "ISO-CAL": {
+            "best_combined_nrmse": 0.002740226536764077,
+            "finite_cases": 3,
+            "mean_combined_nrmse": 0.12782923782434566,
+            "median_combined_nrmse": 0.12530025405547943,
+            "worst_combined_nrmse": 0.25544723288079346
+          },
+          "ISO-NOM": {
+            "best_combined_nrmse": 0.04554992613758413,
+            "finite_cases": 3,
+            "mean_combined_nrmse": 0.24802599965015545,
+            "median_combined_nrmse": 0.11503978689115157,
+            "worst_combined_nrmse": 0.5834882859217306
+          },
+          "current": {
+            "best_combined_nrmse": 0.2915928796614954,
+            "finite_cases": 3,
+            "mean_combined_nrmse": 0.4966983111927655,
+            "median_combined_nrmse": 0.5488670143199266,
+            "worst_combined_nrmse": 0.6496350395968745
+          }
+        }
+      },
+      "id": {
+        "1s": {
+          "ISO-CAL": {
+            "best_combined_nrmse": 0.0012883368751458123,
+            "finite_cases": 3,
+            "mean_combined_nrmse": 0.09168097931648568,
+            "median_combined_nrmse": 0.058547227654891405,
+            "worst_combined_nrmse": 0.2152073734194198
+          },
+          "ISO-NOM": {
+            "best_combined_nrmse": 0.11941028733436874,
+            "finite_cases": 3,
+            "mean_combined_nrmse": 0.1344613902831178,
+            "median_combined_nrmse": 0.13384528896281558,
+            "worst_combined_nrmse": 0.15012859455216912
+          },
+          "current": {
+            "best_combined_nrmse": 0.19016193049707017,
+            "finite_cases": 3,
+            "mean_combined_nrmse": 0.4450559728309122,
+            "median_combined_nrmse": 0.20394813683878504,
+            "worst_combined_nrmse": 0.9410578511568815
+          }
+        }
+      },
+      "thermal_ood": {
+        "1s": {
+          "ISO-CAL": {
+            "best_combined_nrmse": 0.06251469295344896,
+            "finite_cases": 3,
+            "mean_combined_nrmse": 0.1803444131057964,
+            "median_combined_nrmse": 0.19246916042584133,
+            "worst_combined_nrmse": 0.2860493859380989
+          },
+          "ISO-NOM": {
+            "best_combined_nrmse": 0.1894955680684286,
+            "finite_cases": 3,
+            "mean_combined_nrmse": 0.3903029542269827,
+            "median_combined_nrmse": 0.36605042214587064,
+            "worst_combined_nrmse": 0.6153628724666488
+          },
+          "current": {
+            "best_combined_nrmse": 0.37687659506844945,
+            "finite_cases": 3,
+            "mean_combined_nrmse": 0.5165847573807228,
+            "median_combined_nrmse": 0.5615128756363403,
+            "worst_combined_nrmse": 0.6113648014373788
+          }
+        }
+      }
+    },
+    "model_totals": {
+      "ISO-CAL": {
+        "case_count": 9,
+        "divergent_cases": 0,
+        "horizon_wins": {
+          "1s": 7
+        }
+      },
+      "ISO-NOM": {
+        "case_count": 9,
+        "divergent_cases": 0,
+        "horizon_wins": {
+          "1s": 2
+        }
+      },
+      "current": {
+        "case_count": 9,
+        "divergent_cases": 0,
+        "horizon_wins": {
+          "1s": 0
+        }
+      }
+    },
+    "overall": {
+      "1s": {
+        "ISO-CAL": {
+          "best_combined_nrmse": 0.0012883368751458123,
+          "finite_cases": 9,
+          "mean_combined_nrmse": 0.1332848767488759,
+          "median_combined_nrmse": 0.12530025405547943,
+          "worst_combined_nrmse": 0.2860493859380989
+        },
+        "ISO-NOM": {
+          "best_combined_nrmse": 0.04554992613758413,
+          "finite_cases": 9,
+          "mean_combined_nrmse": 0.25759678138675196,
+          "median_combined_nrmse": 0.15012859455216912,
+          "worst_combined_nrmse": 0.6153628724666488
+        },
+        "current": {
+          "best_combined_nrmse": 0.19016193049707017,
+          "finite_cases": 9,
+          "mean_combined_nrmse": 0.4861130138014668,
+          "median_combined_nrmse": 0.5488670143199266,
+          "worst_combined_nrmse": 0.9410578511568815
+        }
+      }
+    }
+  },
+  "benchmark": "multi_trajectory_hidden_thermal_test_bank",
+  "cases": [
+    {
+      "case": {
+        "anchor_temperature_c": 25.706985473632812,
+        "case_id": "id-01",
+        "category": "id",
+        "excitation_family": "multisine_voltage",
+        "ood_axis": null,
+        "scenario_name": "prbs",
+        "split": "id_test",
+        "stop_step": 1200,
+        "trajectory_id": "id_test-multisine_voltage-0027"
+      },
+      "models": {
+        "ISO-CAL": {
+          "accuracy": {
+            "combined_nrmse": 0.2152073734194198,
+            "compared_steps": 1000,
+            "current_nrmse": 0.30257969670362433,
+            "current_rmse_a": 1.1429611868446614,
+            "final_current_error_a": 0.5360672993058397,
+            "final_speed_error_rad_s": 1.736170870201292,
+            "horizons": [
+              {
+                "combined_nrmse": 0.2152073734194198,
+                "current_nrmse": 0.30257969670362433,
+                "current_rmse_a": 1.1429611868446614,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.03277124182745974,
+                "speed_rmse_rad_s": 2.105524566391682
+              }
+            ],
+            "maximum_absolute_current_error_a": 1.8500862578626904,
+            "maximum_absolute_speed_error_rad_s": 4.229853775113398,
+            "speed_nrmse": 0.03277124182745974,
+            "speed_rmse_rad_s": 2.105524566391682
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 159.27173311388958,
+            "wall_time_s": 0.006278578002820723
+          }
+        },
+        "ISO-NOM": {
+          "accuracy": {
+            "combined_nrmse": 0.11941028733436874,
+            "compared_steps": 1000,
+            "current_nrmse": 0.16778791871348914,
+            "current_rmse_a": 0.6338002212316575,
+            "final_current_error_a": -0.5563700389407344,
+            "final_speed_error_rad_s": -1.9132111417871442,
+            "horizons": [
+              {
+                "combined_nrmse": 0.11941028733436874,
+                "current_nrmse": 0.16778791871348914,
+                "current_rmse_a": 0.6338002212316575,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.019100988884049316,
+                "speed_rmse_rad_s": 1.2272223783732568
+              }
+            ],
+            "maximum_absolute_current_error_a": 1.142791303700406,
+            "maximum_absolute_speed_error_rad_s": 2.784679579131467,
+            "speed_nrmse": 0.019100988884049316,
+            "speed_rmse_rad_s": 1.2272223783732568
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 157.25226201103675,
+            "wall_time_s": 0.006359209000947885
+          }
+        },
+        "current": {
+          "accuracy": {
+            "combined_nrmse": 0.9410578511568815,
+            "compared_steps": 1000,
+            "current_nrmse": 1.0307191061712146,
+            "current_rmse_a": 3.893426907777076,
+            "final_current_error_a": 0.7333956493516176,
+            "final_speed_error_rad_s": -2.3388736571100566,
+            "horizons": [
+              {
+                "combined_nrmse": 0.9410578511568815,
+                "current_nrmse": 1.0307191061712146,
+                "current_rmse_a": 3.893426907777076,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.841901349696999,
+                "speed_rmse_rad_s": 54.09144955806982
+              }
+            ],
+            "maximum_absolute_current_error_a": 7.140342210194387,
+            "maximum_absolute_speed_error_rad_s": 99.44841588016148,
+            "speed_nrmse": 0.841901349696999,
+            "speed_rmse_rad_s": 54.09144955806982
+          },
+          "checkpoint_phase": "6E",
+          "contractivity_margin": 0.00016628950834274292,
+          "divergent": false,
+          "role": "temperature_blind_data_driven_candidate",
+          "selected_variant": "latent16",
+          "temperature_input": false,
+          "timing": {
+            "cold_simulated_seconds_per_wall_second": 1.4168045690951856,
+            "cold_wall_time_s": 0.7058136470004683,
+            "warm_burn_in_wall_time_s": 0.003906606998498319,
+            "warm_simulated_seconds_per_wall_second": 46.59734317756175,
+            "warm_wall_time_s": 0.02146045100016636
+          }
+        }
+      },
+      "reference": {
+        "final_temperature_c": 37.32344397394615,
+        "initial_temperature_c": 25.706985473632812,
+        "internal_temperature_state": true,
+        "name": "FULL/RK4",
+        "timing": {
+          "control_steps_completed": 1000,
+          "rk4_substeps_completed": 10000,
+          "rk4_substeps_per_control_step": 10,
+          "simulated_seconds_per_wall_second": 4.196337377101141,
+          "wall_time_s": 0.23830305100273108
+        }
+      }
+    },
+    {
+      "case": {
+        "anchor_temperature_c": 55.251068115234375,
+        "case_id": "id-02",
+        "category": "id",
+        "excitation_family": "pi_closed_loop",
+        "ood_axis": null,
+        "scenario_name": "sine",
+        "split": "id_test",
+        "stop_step": 6000,
+        "trajectory_id": "id_test-pi_closed_loop-0004"
+      },
+      "models": {
+        "ISO-CAL": {
+          "accuracy": {
+            "combined_nrmse": 0.0012883368751458123,
+            "compared_steps": 1000,
+            "current_nrmse": 0.0017280352522331458,
+            "current_rmse_a": 0.0065274611757456715,
+            "final_current_error_a": 0.0074296311810302385,
+            "final_speed_error_rad_s": -0.027586977207235464,
+            "horizons": [
+              {
+                "combined_nrmse": 0.0012883368751458123,
+                "current_nrmse": 0.0017280352522331458,
+                "current_rmse_a": 0.0065274611757456715,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.0005775101512185578,
+                "speed_rmse_rad_s": 0.03710453870296635
+              }
+            ],
+            "maximum_absolute_current_error_a": 0.010756637097305344,
+            "maximum_absolute_speed_error_rad_s": 0.06271353936396906,
+            "speed_nrmse": 0.0005775101512185578,
+            "speed_rmse_rad_s": 0.03710453870296635
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 158.20662040949503,
+            "wall_time_s": 0.006320847998722456
+          }
+        },
+        "ISO-NOM": {
+          "accuracy": {
+            "combined_nrmse": 0.13384528896281558,
+            "compared_steps": 1000,
+            "current_nrmse": 0.1754450910247415,
+            "current_rmse_a": 0.6627243389040854,
+            "final_current_error_a": 0.8640933577582066,
+            "final_speed_error_rad_s": -4.517759301483665,
+            "horizons": [
+              {
+                "combined_nrmse": 0.13384528896281558,
+                "current_nrmse": 0.1754450910247415,
+                "current_rmse_a": 0.6627243389040854,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.07105028353496824,
+                "speed_rmse_rad_s": 4.564920616057296
+              }
+            ],
+            "maximum_absolute_current_error_a": 1.1028719901385013,
+            "maximum_absolute_speed_error_rad_s": 7.545235560547951,
+            "speed_nrmse": 0.07105028353496824,
+            "speed_rmse_rad_s": 4.564920616057296
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 158.4887527001744,
+            "wall_time_s": 0.0063095959994825535
+          }
+        },
+        "current": {
+          "accuracy": {
+            "combined_nrmse": 0.20394813683878504,
+            "compared_steps": 1000,
+            "current_nrmse": 0.21856577660882218,
+            "current_rmse_a": 0.8256079378687944,
+            "final_current_error_a": 0.21430846350494992,
+            "final_speed_error_rad_s": -4.452808045528627,
+            "horizons": [
+              {
+                "combined_nrmse": 0.20394813683878504,
+                "current_nrmse": 0.21856577660882218,
+                "current_rmse_a": 0.8256079378687944,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.18819852904687107,
+                "speed_rmse_rad_s": 12.091596295106951
+              }
+            ],
+            "maximum_absolute_current_error_a": 1.524128738008585,
+            "maximum_absolute_speed_error_rad_s": 22.730616494035935,
+            "speed_nrmse": 0.18819852904687107,
+            "speed_rmse_rad_s": 12.091596295106951
+          },
+          "checkpoint_phase": "6E",
+          "contractivity_margin": 0.00016628950834274292,
+          "divergent": false,
+          "role": "temperature_blind_data_driven_candidate",
+          "selected_variant": "latent16",
+          "temperature_input": false,
+          "timing": {
+            "cold_simulated_seconds_per_wall_second": 1.6088129227426355,
+            "cold_wall_time_s": 0.6215763100008189,
+            "warm_burn_in_wall_time_s": 0.0036018440005136654,
+            "warm_simulated_seconds_per_wall_second": 48.78932224701612,
+            "warm_wall_time_s": 0.020496287997957552
+          }
+        }
+      },
+      "reference": {
+        "final_temperature_c": 56.1716914370011,
+        "initial_temperature_c": 55.251068115234375,
+        "internal_temperature_state": true,
+        "name": "FULL/RK4",
+        "timing": {
+          "control_steps_completed": 1000,
+          "rk4_substeps_completed": 10000,
+          "rk4_substeps_per_control_step": 10,
+          "simulated_seconds_per_wall_second": 4.232829728276333,
+          "wall_time_s": 0.23624857700269786
+        }
+      }
+    },
+    {
+      "case": {
+        "anchor_temperature_c": 84.27289581298828,
+        "case_id": "id-03",
+        "category": "id",
+        "excitation_family": "step_ramp_voltage",
+        "ood_axis": null,
+        "scenario_name": "multisine",
+        "split": "id_test",
+        "stop_step": 1200,
+        "trajectory_id": "id_test-step_ramp_voltage-0026"
+      },
+      "models": {
+        "ISO-CAL": {
+          "accuracy": {
+            "combined_nrmse": 0.058547227654891405,
+            "compared_steps": 1000,
+            "current_nrmse": 0.075887573674872,
+            "current_rmse_a": 0.28665687823446917,
+            "final_current_error_a": -0.11162674684382012,
+            "final_speed_error_rad_s": 1.0218403497557085,
+            "horizons": [
+              {
+                "combined_nrmse": 0.058547227654891405,
+                "current_nrmse": 0.075887573674872,
+                "current_rmse_a": 0.28665687823446917,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.03311543286578369,
+                "speed_rmse_rad_s": 2.1276385494545926
+              }
+            ],
+            "maximum_absolute_current_error_a": 0.6260697485113962,
+            "maximum_absolute_speed_error_rad_s": 4.1611336844787274,
+            "speed_nrmse": 0.03311543286578369,
+            "speed_rmse_rad_s": 2.1276385494545926
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 157.08841029052934,
+            "wall_time_s": 0.006365842000377597
+          }
+        },
+        "ISO-NOM": {
+          "accuracy": {
+            "combined_nrmse": 0.15012859455216912,
+            "compared_steps": 1000,
+            "current_nrmse": 0.19600867671395897,
+            "current_rmse_a": 0.7404009991730378,
+            "final_current_error_a": -0.2812194784915375,
+            "final_speed_error_rad_s": 2.159244011697687,
+            "horizons": [
+              {
+                "combined_nrmse": 0.15012859455216912,
+                "current_nrmse": 0.19600867671395897,
+                "current_rmse_a": 0.7404009991730378,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.08159527227273573,
+                "speed_rmse_rad_s": 5.2424272225078585
+              }
+            ],
+            "maximum_absolute_current_error_a": 1.6076252382614733,
+            "maximum_absolute_speed_error_rad_s": 10.425982044912232,
+            "speed_nrmse": 0.08159527227273573,
+            "speed_rmse_rad_s": 5.2424272225078585
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 156.43792106094574,
+            "wall_time_s": 0.006392311999661615
+          }
+        },
+        "current": {
+          "accuracy": {
+            "combined_nrmse": 0.19016193049707017,
+            "compared_steps": 1000,
+            "current_nrmse": 0.13534595242931025,
+            "current_rmse_a": 0.5112542979866519,
+            "final_current_error_a": -0.31200152390188074,
+            "final_speed_error_rad_s": 7.0939282944645035,
+            "horizons": [
+              {
+                "combined_nrmse": 0.19016193049707017,
+                "current_nrmse": 0.13534595242931025,
+                "current_rmse_a": 0.5112542979866519,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.23238888265523355,
+                "speed_rmse_rad_s": 14.930789134054512
+              }
+            ],
+            "maximum_absolute_current_error_a": 1.409257910730906,
+            "maximum_absolute_speed_error_rad_s": 47.02912853793279,
+            "speed_nrmse": 0.23238888265523355,
+            "speed_rmse_rad_s": 14.930789134054512
+          },
+          "checkpoint_phase": "6E",
+          "contractivity_margin": 0.00016628950834274292,
+          "divergent": false,
+          "role": "temperature_blind_data_driven_candidate",
+          "selected_variant": "latent16",
+          "temperature_input": false,
+          "timing": {
+            "cold_simulated_seconds_per_wall_second": 1.5618743668193262,
+            "cold_wall_time_s": 0.6402563619994908,
+            "warm_burn_in_wall_time_s": 0.003860379998513963,
+            "warm_simulated_seconds_per_wall_second": 47.19405169691926,
+            "warm_wall_time_s": 0.021189111001149286
+          }
+        }
+      },
+      "reference": {
+        "final_temperature_c": 82.75915174817801,
+        "initial_temperature_c": 84.27289581298828,
+        "internal_temperature_state": true,
+        "name": "FULL/RK4",
+        "timing": {
+          "control_steps_completed": 1000,
+          "rk4_substeps_completed": 10000,
+          "rk4_substeps_per_control_step": 10,
+          "simulated_seconds_per_wall_second": 4.162226888630741,
+          "wall_time_s": 0.24025600399909308
+        }
+      }
+    },
+    {
+      "case": {
+        "anchor_temperature_c": 26.97041893005371,
+        "case_id": "excitation_ood-01",
+        "category": "excitation_ood",
+        "excitation_family": "step_ramp_voltage",
+        "ood_axis": "novel_profile",
+        "scenario_name": "sine",
+        "split": "ood_test",
+        "stop_step": 1200,
+        "trajectory_id": "ood_test-step_ramp_voltage-0010"
+      },
+      "models": {
+        "ISO-CAL": {
+          "accuracy": {
+            "combined_nrmse": 0.12530025405547943,
+            "compared_steps": 1000,
+            "current_nrmse": 0.16086677678907765,
+            "current_rmse_a": 0.6076563765704804,
+            "final_current_error_a": -0.5387696671881939,
+            "final_speed_error_rad_s": 2.049466608996454,
+            "horizons": [
+              {
+                "combined_nrmse": 0.12530025405547943,
+                "current_nrmse": 0.16086677678907765,
+                "current_rmse_a": 0.6076563765704804,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.07431142212492271,
+                "speed_rmse_rad_s": 4.77444601188174
+              }
+            ],
+            "maximum_absolute_current_error_a": 0.8905020466861835,
+            "maximum_absolute_speed_error_rad_s": 8.017113183228748,
+            "speed_nrmse": 0.07431142212492271,
+            "speed_rmse_rad_s": 4.77444601188174
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 158.60360312359967,
+            "wall_time_s": 0.006305027000053087
+          }
+        },
+        "ISO-NOM": {
+          "accuracy": {
+            "combined_nrmse": 0.04554992613758413,
+            "compared_steps": 1000,
+            "current_nrmse": 0.059120969689958,
+            "current_rmse_a": 0.2233228944982027,
+            "final_current_error_a": 0.26169176053644794,
+            "final_speed_error_rad_s": -0.9507556446798446,
+            "horizons": [
+              {
+                "combined_nrmse": 0.04554992613758413,
+                "current_nrmse": 0.059120969689958,
+                "current_rmse_a": 0.2233228944982027,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.025579337075026087,
+                "speed_rmse_rad_s": 1.643450769642556
+              }
+            ],
+            "maximum_absolute_current_error_a": 0.3379711204214857,
+            "maximum_absolute_speed_error_rad_s": 2.644722521511852,
+            "speed_nrmse": 0.025579337075026087,
+            "speed_rmse_rad_s": 1.643450769642556
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 158.20036327564515,
+            "wall_time_s": 0.00632109800062608
+          }
+        },
+        "current": {
+          "accuracy": {
+            "combined_nrmse": 0.5488670143199266,
+            "compared_steps": 1000,
+            "current_nrmse": 0.6018367880960727,
+            "current_rmse_a": 2.2733716012771263,
+            "final_current_error_a": -0.5910721069995697,
+            "final_speed_error_rad_s": 2.001806393056171,
+            "horizons": [
+              {
+                "combined_nrmse": 0.5488670143199266,
+                "current_nrmse": 0.6018367880960727,
+                "current_rmse_a": 2.2733716012771263,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.4902065680008212,
+                "speed_rmse_rad_s": 31.495357330872668
+              }
+            ],
+            "maximum_absolute_current_error_a": 4.620176621002689,
+            "maximum_absolute_speed_error_rad_s": 69.84251791600569,
+            "speed_nrmse": 0.4902065680008212,
+            "speed_rmse_rad_s": 31.495357330872668
+          },
+          "checkpoint_phase": "6E",
+          "contractivity_margin": 0.00016628950834274292,
+          "divergent": false,
+          "role": "temperature_blind_data_driven_candidate",
+          "selected_variant": "latent16",
+          "temperature_input": false,
+          "timing": {
+            "cold_simulated_seconds_per_wall_second": 1.607637034717506,
+            "cold_wall_time_s": 0.6220309550008096,
+            "warm_burn_in_wall_time_s": 0.004259880999597954,
+            "warm_simulated_seconds_per_wall_second": 47.4391740853253,
+            "warm_wall_time_s": 0.021079624999401858
+          }
+        }
+      },
+      "reference": {
+        "final_temperature_c": 30.49985778122919,
+        "initial_temperature_c": 26.97041893005371,
+        "internal_temperature_state": true,
+        "name": "FULL/RK4",
+        "timing": {
+          "control_steps_completed": 1000,
+          "rk4_substeps_completed": 10000,
+          "rk4_substeps_per_control_step": 10,
+          "simulated_seconds_per_wall_second": 4.133242990547392,
+          "wall_time_s": 0.24194077200081665
+        }
+      }
+    },
+    {
+      "case": {
+        "anchor_temperature_c": 56.44856262207031,
+        "case_id": "excitation_ood-02",
+        "category": "excitation_ood",
+        "excitation_family": "step_ramp_voltage",
+        "ood_axis": "novel_profile",
+        "scenario_name": "multisine",
+        "split": "ood_test",
+        "stop_step": 10800,
+        "trajectory_id": "ood_test-step_ramp_voltage-0018"
+      },
+      "models": {
+        "ISO-CAL": {
+          "accuracy": {
+            "combined_nrmse": 0.002740226536764077,
+            "compared_steps": 1000,
+            "current_nrmse": 0.003437574303818991,
+            "current_rmse_a": 0.012985055008525937,
+            "final_current_error_a": -0.004762180392778759,
+            "final_speed_error_rad_s": 0.05210159183794327,
+            "horizons": [
+              {
+                "combined_nrmse": 0.002740226536764077,
+                "current_nrmse": 0.003437574303818991,
+                "current_rmse_a": 0.012985055008525937,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.0017890684311382527,
+                "speed_rmse_rad_s": 0.1149461333369743
+              }
+            ],
+            "maximum_absolute_current_error_a": 0.025306184199781256,
+            "maximum_absolute_speed_error_rad_s": 0.19294607247464057,
+            "speed_nrmse": 0.0017890684311382527,
+            "speed_rmse_rad_s": 0.1149461333369743
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 159.64033672626726,
+            "wall_time_s": 0.00626408099924447
+          }
+        },
+        "ISO-NOM": {
+          "accuracy": {
+            "combined_nrmse": 0.11503978689115157,
+            "compared_steps": 1000,
+            "current_nrmse": 0.14468772420740156,
+            "current_rmse_a": 0.5465418029813356,
+            "final_current_error_a": -0.201641212387621,
+            "final_speed_error_rad_s": 1.9119910722931,
+            "horizons": [
+              {
+                "combined_nrmse": 0.11503978689115157,
+                "current_nrmse": 0.14468772420740156,
+                "current_rmse_a": 0.5465418029813356,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.07438929761468423,
+                "speed_rmse_rad_s": 4.7794494462244455
+              }
+            ],
+            "maximum_absolute_current_error_a": 1.2311844160576477,
+            "maximum_absolute_speed_error_rad_s": 7.798316485939544,
+            "speed_nrmse": 0.07438929761468423,
+            "speed_rmse_rad_s": 4.7794494462244455
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 156.15718407368203,
+            "wall_time_s": 0.006403804000001401
+          }
+        },
+        "current": {
+          "accuracy": {
+            "combined_nrmse": 0.2915928796614954,
+            "compared_steps": 1000,
+            "current_nrmse": 0.2600340435920474,
+            "current_rmse_a": 0.9822497091571143,
+            "final_current_error_a": -0.32718208016986916,
+            "final_speed_error_rad_s": 8.13103332999328,
+            "horizons": [
+              {
+                "combined_nrmse": 0.2915928796614954,
+                "current_nrmse": 0.2600340435920474,
+                "current_rmse_a": 0.9822497091571143,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.32005485641017234,
+                "speed_rmse_rad_s": 20.563253791619175
+              }
+            ],
+            "maximum_absolute_current_error_a": 2.353538821833639,
+            "maximum_absolute_speed_error_rad_s": 50.41430550112959,
+            "speed_nrmse": 0.32005485641017234,
+            "speed_rmse_rad_s": 20.563253791619175
+          },
+          "checkpoint_phase": "6E",
+          "contractivity_margin": 0.00016628950834274292,
+          "divergent": false,
+          "role": "temperature_blind_data_driven_candidate",
+          "selected_variant": "latent16",
+          "temperature_input": false,
+          "timing": {
+            "cold_simulated_seconds_per_wall_second": 1.4721664930344216,
+            "cold_wall_time_s": 0.6792709959991043,
+            "warm_burn_in_wall_time_s": 0.003789567002968397,
+            "warm_simulated_seconds_per_wall_second": 47.62205688644162,
+            "warm_wall_time_s": 0.020998672996938694
+          }
+        }
+      },
+      "reference": {
+        "final_temperature_c": 56.71155406677499,
+        "initial_temperature_c": 56.44856262207031,
+        "internal_temperature_state": true,
+        "name": "FULL/RK4",
+        "timing": {
+          "control_steps_completed": 1000,
+          "rk4_substeps_completed": 10000,
+          "rk4_substeps_per_control_step": 10,
+          "simulated_seconds_per_wall_second": 4.181732630419606,
+          "wall_time_s": 0.23913532699953066
+        }
+      }
+    },
+    {
+      "case": {
+        "anchor_temperature_c": 87.46964263916016,
+        "case_id": "excitation_ood-03",
+        "category": "excitation_ood",
+        "excitation_family": "step_ramp_voltage",
+        "ood_axis": "novel_profile",
+        "scenario_name": "prbs",
+        "split": "ood_test",
+        "stop_step": 1200,
+        "trajectory_id": "ood_test-step_ramp_voltage-0002"
+      },
+      "models": {
+        "ISO-CAL": {
+          "accuracy": {
+            "combined_nrmse": 0.25544723288079346,
+            "compared_steps": 1000,
+            "current_nrmse": 0.3587412455531548,
+            "current_rmse_a": 1.3551051979181077,
+            "final_current_error_a": -0.9443254943058292,
+            "final_speed_error_rad_s": -3.6470939394400332,
+            "horizons": [
+              {
+                "combined_nrmse": 0.25544723288079346,
+                "current_nrmse": 0.3587412455531548,
+                "current_rmse_a": 1.3551051979181077,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.04255932696694964,
+                "speed_rmse_rad_s": 2.734400756913721
+              }
+            ],
+            "maximum_absolute_current_error_a": 2.142975747783444,
+            "maximum_absolute_speed_error_rad_s": 5.9945806869991145,
+            "speed_nrmse": 0.04255932696694964,
+            "speed_rmse_rad_s": 2.734400756913721
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 157.63919536343673,
+            "wall_time_s": 0.0063436000018555205
+          }
+        },
+        "ISO-NOM": {
+          "accuracy": {
+            "combined_nrmse": 0.5834882859217306,
+            "compared_steps": 1000,
+            "current_nrmse": 0.8195364688133363,
+            "current_rmse_a": 3.095707958141242,
+            "final_current_error_a": -2.0162214292777225,
+            "final_speed_error_rad_s": -7.841902693880577,
+            "horizons": [
+              {
+                "combined_nrmse": 0.5834882859217306,
+                "current_nrmse": 0.8195364688133363,
+                "current_rmse_a": 3.095707958141242,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.09631788982699907,
+                "speed_rmse_rad_s": 6.188342946583859
+              }
+            ],
+            "maximum_absolute_current_error_a": 4.8850144294396305,
+            "maximum_absolute_speed_error_rad_s": 13.227339575731577,
+            "speed_nrmse": 0.09631788982699907,
+            "speed_rmse_rad_s": 6.188342946583859
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 156.97106127308842,
+            "wall_time_s": 0.0063706010005262215
+          }
+        },
+        "current": {
+          "accuracy": {
+            "combined_nrmse": 0.6496350395968745,
+            "compared_steps": 1000,
+            "current_nrmse": 0.4715611538581476,
+            "current_rmse_a": 1.7812698669318558,
+            "final_current_error_a": -0.6440542350505503,
+            "final_speed_error_rad_s": -9.479144025935717,
+            "horizons": [
+              {
+                "combined_nrmse": 0.6496350395968745,
+                "current_nrmse": 0.4715611538581476,
+                "current_rmse_a": 1.7812698669318558,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.7884677847040027,
+                "speed_rmse_rad_s": 50.65838820644385
+              }
+            ],
+            "maximum_absolute_current_error_a": 3.713415439220282,
+            "maximum_absolute_speed_error_rad_s": 101.48465753377904,
+            "speed_nrmse": 0.7884677847040027,
+            "speed_rmse_rad_s": 50.65838820644385
+          },
+          "checkpoint_phase": "6E",
+          "contractivity_margin": 0.00016628950834274292,
+          "divergent": false,
+          "role": "temperature_blind_data_driven_candidate",
+          "selected_variant": "latent16",
+          "temperature_input": false,
+          "timing": {
+            "cold_simulated_seconds_per_wall_second": 1.5752152010948253,
+            "cold_wall_time_s": 0.6348338940006215,
+            "warm_burn_in_wall_time_s": 0.004131060002691811,
+            "warm_simulated_seconds_per_wall_second": 47.067288998246546,
+            "warm_wall_time_s": 0.02124617799927364
+          }
+        }
+      },
+      "reference": {
+        "final_temperature_c": 94.6049447457786,
+        "initial_temperature_c": 87.46964263916016,
+        "internal_temperature_state": true,
+        "name": "FULL/RK4",
+        "timing": {
+          "control_steps_completed": 1000,
+          "rk4_substeps_completed": 10000,
+          "rk4_substeps_per_control_step": 10,
+          "simulated_seconds_per_wall_second": 4.1629685109327905,
+          "wall_time_s": 0.2402132030001667
+        }
+      }
+    },
+    {
+      "case": {
+        "anchor_temperature_c": 76.0036392211914,
+        "case_id": "thermal_ood-01",
+        "category": "thermal_ood",
+        "excitation_family": "pi_closed_loop",
+        "ood_axis": "higher_initial_temperature",
+        "scenario_name": "multisine",
+        "split": "ood_test",
+        "stop_step": 10800,
+        "trajectory_id": "ood_test-pi_closed_loop-0004"
+      },
+      "models": {
+        "ISO-CAL": {
+          "accuracy": {
+            "combined_nrmse": 0.06251469295344896,
+            "compared_steps": 1000,
+            "current_nrmse": 0.0759525122325938,
+            "current_rmse_a": 0.28690217642140736,
+            "final_current_error_a": -0.10611522805742352,
+            "final_speed_error_rad_s": 1.4247490861921657,
+            "horizons": [
+              {
+                "combined_nrmse": 0.06251469295344896,
+                "current_nrmse": 0.0759525122325938,
+                "current_rmse_a": 0.28690217642140736,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.0452480889727476,
+                "speed_rmse_rad_s": 2.907151441376477
+              }
+            ],
+            "maximum_absolute_current_error_a": 0.7152302928341197,
+            "maximum_absolute_speed_error_rad_s": 4.314555444251923,
+            "speed_nrmse": 0.0452480889727476,
+            "speed_rmse_rad_s": 2.907151441376477
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 158.00052241274824,
+            "wall_time_s": 0.006329092997475527
+          }
+        },
+        "ISO-NOM": {
+          "accuracy": {
+            "combined_nrmse": 0.1894955680684286,
+            "compared_steps": 1000,
+            "current_nrmse": 0.23301606229847252,
+            "current_rmse_a": 0.8801922865941634,
+            "final_current_error_a": -0.31844677820584877,
+            "final_speed_error_rad_s": 3.695652388040169,
+            "horizons": [
+              {
+                "combined_nrmse": 0.1894955680684286,
+                "current_nrmse": 0.23301606229847252,
+                "current_rmse_a": 0.8801922865941634,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.13236561240015188,
+                "speed_rmse_rad_s": 8.50437862932835
+              }
+            ],
+            "maximum_absolute_current_error_a": 2.2407990735942445,
+            "maximum_absolute_speed_error_rad_s": 12.688386322273079,
+            "speed_nrmse": 0.13236561240015188,
+            "speed_rmse_rad_s": 8.50437862932835
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 156.7885686920451,
+            "wall_time_s": 0.006378016001690412
+          }
+        },
+        "current": {
+          "accuracy": {
+            "combined_nrmse": 0.37687659506844945,
+            "compared_steps": 1000,
+            "current_nrmse": 0.3027448714847772,
+            "current_rmse_a": 1.143585116229085,
+            "final_current_error_a": -0.49474986958026534,
+            "final_speed_error_rad_s": 10.578222312236338,
+            "horizons": [
+              {
+                "combined_nrmse": 0.37687659506844945,
+                "current_nrmse": 0.3027448714847772,
+                "current_rmse_a": 1.143585116229085,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.43865416743767727,
+                "speed_rmse_rad_s": 28.183159202597512
+              }
+            ],
+            "maximum_absolute_current_error_a": 2.34567634426325,
+            "maximum_absolute_speed_error_rad_s": 57.48272830454073,
+            "speed_nrmse": 0.43865416743767727,
+            "speed_rmse_rad_s": 28.183159202597512
+          },
+          "checkpoint_phase": "6E",
+          "contractivity_margin": 0.00016628950834274292,
+          "divergent": false,
+          "role": "temperature_blind_data_driven_candidate",
+          "selected_variant": "latent16",
+          "temperature_input": false,
+          "timing": {
+            "cold_simulated_seconds_per_wall_second": 1.590959637862957,
+            "cold_wall_time_s": 0.6285514580013114,
+            "warm_burn_in_wall_time_s": 0.004162678000284359,
+            "warm_simulated_seconds_per_wall_second": 46.26236413469878,
+            "warm_wall_time_s": 0.02161584300120012
+          }
+        }
+      },
+      "reference": {
+        "final_temperature_c": 75.89864318507642,
+        "initial_temperature_c": 76.0036392211914,
+        "internal_temperature_state": true,
+        "name": "FULL/RK4",
+        "timing": {
+          "control_steps_completed": 1000,
+          "rk4_substeps_completed": 10000,
+          "rk4_substeps_per_control_step": 10,
+          "simulated_seconds_per_wall_second": 4.176141845305724,
+          "wall_time_s": 0.23945546799950534
+        }
+      }
+    },
+    {
+      "case": {
+        "anchor_temperature_c": 92.17520141601562,
+        "case_id": "thermal_ood-02",
+        "category": "thermal_ood",
+        "excitation_family": "pi_closed_loop",
+        "ood_axis": "higher_initial_temperature",
+        "scenario_name": "prbs",
+        "split": "ood_test",
+        "stop_step": 10800,
+        "trajectory_id": "ood_test-pi_closed_loop-0012"
+      },
+      "models": {
+        "ISO-CAL": {
+          "accuracy": {
+            "combined_nrmse": 0.2860493859380989,
+            "compared_steps": 1000,
+            "current_nrmse": 0.4011379216842536,
+            "current_rmse_a": 1.515253931613657,
+            "final_current_error_a": -1.0318603126792603,
+            "final_speed_error_rad_s": -4.37597977820208,
+            "horizons": [
+              {
+                "combined_nrmse": 0.2860493859380989,
+                "current_nrmse": 0.4011379216842536,
+                "current_rmse_a": 1.515253931613657,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.052315104682725815,
+                "speed_rmse_rad_s": 3.3612012227908314
+              }
+            ],
+            "maximum_absolute_current_error_a": 2.3873380338344905,
+            "maximum_absolute_speed_error_rad_s": 7.296741651063783,
+            "speed_nrmse": 0.052315104682725815,
+            "speed_rmse_rad_s": 3.3612012227908314
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 157.5185163122161,
+            "wall_time_s": 0.006348459999571787
+          }
+        },
+        "ISO-NOM": {
+          "accuracy": {
+            "combined_nrmse": 0.6153628724666488,
+            "compared_steps": 1000,
+            "current_nrmse": 0.8631715833823075,
+            "current_rmse_a": 3.2605347554418698,
+            "final_current_error_a": -2.0926342624878043,
+            "final_speed_error_rad_s": -8.86558688919915,
+            "horizons": [
+              {
+                "combined_nrmse": 0.6153628724666488,
+                "current_nrmse": 0.8631715833823075,
+                "current_rmse_a": 3.2605347554418698,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.11080499655742179,
+                "speed_rmse_rad_s": 7.119127299445456
+              }
+            ],
+            "maximum_absolute_current_error_a": 5.145255957363764,
+            "maximum_absolute_speed_error_rad_s": 15.11832615043862,
+            "speed_nrmse": 0.11080499655742179,
+            "speed_rmse_rad_s": 7.119127299445456
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 158.56603035709313,
+            "wall_time_s": 0.006306520997895859
+          }
+        },
+        "current": {
+          "accuracy": {
+            "combined_nrmse": 0.6113648014373788,
+            "compared_steps": 1000,
+            "current_nrmse": 0.41788274314542484,
+            "current_rmse_a": 1.5785056342865857,
+            "final_current_error_a": -0.6752810781829979,
+            "final_speed_error_rad_s": -11.168360110452866,
+            "horizons": [
+              {
+                "combined_nrmse": 0.6113648014373788,
+                "current_nrmse": 0.41788274314542484,
+                "current_rmse_a": 1.5785056342865857,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.7569067669497921,
+                "speed_rmse_rad_s": 48.630619513036144
+              }
+            ],
+            "maximum_absolute_current_error_a": 3.494237041058053,
+            "maximum_absolute_speed_error_rad_s": 99.52709190030248,
+            "speed_nrmse": 0.7569067669497921,
+            "speed_rmse_rad_s": 48.630619513036144
+          },
+          "checkpoint_phase": "6E",
+          "contractivity_margin": 0.00016628950834274292,
+          "divergent": false,
+          "role": "temperature_blind_data_driven_candidate",
+          "selected_variant": "latent16",
+          "temperature_input": false,
+          "timing": {
+            "cold_simulated_seconds_per_wall_second": 1.6081262892523174,
+            "cold_wall_time_s": 0.621841709002183,
+            "warm_burn_in_wall_time_s": 0.0037350749989855103,
+            "warm_simulated_seconds_per_wall_second": 48.41398917574269,
+            "warm_wall_time_s": 0.02065518700328539
+          }
+        }
+      },
+      "reference": {
+        "final_temperature_c": 99.11312602908389,
+        "initial_temperature_c": 92.17520141601562,
+        "internal_temperature_state": true,
+        "name": "FULL/RK4",
+        "timing": {
+          "control_steps_completed": 1000,
+          "rk4_substeps_completed": 10000,
+          "rk4_substeps_per_control_step": 10,
+          "simulated_seconds_per_wall_second": 4.144033028791736,
+          "wall_time_s": 0.2413108180007839
+        }
+      }
+    },
+    {
+      "case": {
+        "anchor_temperature_c": 105.08211517333984,
+        "case_id": "thermal_ood-03",
+        "category": "thermal_ood",
+        "excitation_family": "prbs_voltage",
+        "ood_axis": "higher_initial_temperature",
+        "scenario_name": "sine",
+        "split": "ood_test",
+        "stop_step": 1200,
+        "trajectory_id": "ood_test-prbs_voltage-0024"
+      },
+      "models": {
+        "ISO-CAL": {
+          "accuracy": {
+            "combined_nrmse": 0.19246916042584133,
+            "compared_steps": 1000,
+            "current_nrmse": 0.24581777615528871,
+            "current_rmse_a": 0.9285493383819582,
+            "final_current_error_a": 0.7810912534098979,
+            "final_speed_error_rad_s": -3.0907015287104684,
+            "horizons": [
+              {
+                "combined_nrmse": 0.19246916042584133,
+                "current_nrmse": 0.24581777615528871,
+                "current_rmse_a": 0.9285493383819582,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.11688616836959334,
+                "speed_rmse_rad_s": 7.509837444345935
+              }
+            ],
+            "maximum_absolute_current_error_a": 1.3321323071065798,
+            "maximum_absolute_speed_error_rad_s": 12.674397945931442,
+            "speed_nrmse": 0.11688616836959334,
+            "speed_rmse_rad_s": 7.509837444345935
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 155.01585583476088,
+            "wall_time_s": 0.006450952998420689
+          }
+        },
+        "ISO-NOM": {
+          "accuracy": {
+            "combined_nrmse": 0.36605042214587064,
+            "compared_steps": 1000,
+            "current_nrmse": 0.46898603065744604,
+            "current_rmse_a": 1.7715426251446165,
+            "final_current_error_a": 1.5775754269112823,
+            "final_speed_error_rad_s": -5.985883543906681,
+            "horizons": [
+              {
+                "combined_nrmse": 0.36605042214587064,
+                "current_nrmse": 0.46898603065744604,
+                "current_rmse_a": 1.7715426251446165,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.21917556012136408,
+                "speed_rmse_rad_s": 14.081844338334037
+              }
+            ],
+            "maximum_absolute_current_error_a": 2.528292680143041,
+            "maximum_absolute_speed_error_rad_s": 23.67789879059494,
+            "speed_nrmse": 0.21917556012136408,
+            "speed_rmse_rad_s": 14.081844338334037
+          },
+          "divergent": false,
+          "role": "temperature_blind_physical_candidate",
+          "temperature_input": false,
+          "timing": {
+            "control_steps_completed": 1000,
+            "simulated_seconds_per_wall_second": 156.74551180517614,
+            "wall_time_s": 0.006379767997714225
+          }
+        },
+        "current": {
+          "accuracy": {
+            "combined_nrmse": 0.5615128756363403,
+            "compared_steps": 1000,
+            "current_nrmse": 0.40033896418693166,
+            "current_rmse_a": 1.5122359584339442,
+            "final_current_error_a": 0.7092362910822421,
+            "final_speed_error_rad_s": -2.8075511145421643,
+            "horizons": [
+              {
+                "combined_nrmse": 0.5615128756363403,
+                "current_nrmse": 0.40033896418693166,
+                "current_rmse_a": 1.5122359584339442,
+                "duration_s": 1.0,
+                "horizon_steps": 1000,
+                "speed_nrmse": 0.6858003592624597,
+                "speed_rmse_rad_s": 44.062092967664704
+              }
+            ],
+            "maximum_absolute_current_error_a": 2.9421681699744786,
+            "maximum_absolute_speed_error_rad_s": 90.29737628857109,
+            "speed_nrmse": 0.6858003592624597,
+            "speed_rmse_rad_s": 44.062092967664704
+          },
+          "checkpoint_phase": "6E",
+          "contractivity_margin": 0.00016628950834274292,
+          "divergent": false,
+          "role": "temperature_blind_data_driven_candidate",
+          "selected_variant": "latent16",
+          "temperature_input": false,
+          "timing": {
+            "cold_simulated_seconds_per_wall_second": 1.565601049604633,
+            "cold_wall_time_s": 0.638732325998717,
+            "warm_burn_in_wall_time_s": 0.0037906180004938506,
+            "warm_simulated_seconds_per_wall_second": 45.638720505951945,
+            "warm_wall_time_s": 0.021911219002504367
+          }
+        }
+      },
+      "reference": {
+        "final_temperature_c": 105.06176588141362,
+        "initial_temperature_c": 105.08211517333984,
+        "internal_temperature_state": true,
+        "name": "FULL/RK4",
+        "timing": {
+          "control_steps_completed": 1000,
+          "rk4_substeps_completed": 10000,
+          "rk4_substeps_per_control_step": 10,
+          "simulated_seconds_per_wall_second": 4.14182023220165,
+          "wall_time_s": 0.24143974000253365
+        }
+      }
+    }
+  ],
+  "control_period_s": 0.001,
+  "duration_s": 1.0,
+  "evaluation_dataset_fingerprint": "d4dbf5b72521f29006f9a5ac802115ca83505d0ec08845490580899e7a7df070",
+  "horizons_s": [
+    1.0
+  ],
+  "interface_audit": {
+    "candidate_control": [
+      "armature_voltage_v"
+    ],
+    "candidate_observations": [
+      "armature_current_a",
+      "angular_speed_rad_s"
+    ],
+    "candidate_temperature_input": false,
+    "full_reference_internal_temperature_state": true,
+    "iso_cal_load_torque_used_during_fit": false,
+    "iso_cal_temperature_used_during_fit": false,
+    "passed": true,
+    "test_bank_used_for_model_selection": false
+  },
+  "interpretation": {
+    "claim_scope": "The bank separately exposes ID, excitation-OOD, and thermal-OOD behavior while every candidate remains temperature-blind.",
+    "selection": "All cases are held-out whole-trajectory anchors and never participate in R2DN or ISO-CAL parameter selection.",
+    "statistics": "Mean, median, and worst-case errors are reported across cases; a single canonical trajectory is not treated as general evidence."
+  },
+  "passed": true,
+  "runtime": {
+    "jax": {
+      "backend": "gpu",
+      "cuda12_pjrt_version": "0.5.3",
+      "cuda12_plugin_version": "0.5.3",
+      "cuda_active": true,
+      "device_count": 1,
+      "device_kinds": [
+        "NVIDIA GeForce RTX 5050 Laptop GPU"
+      ],
+      "device_platforms": [
+        "gpu"
+      ],
+      "jax_version": "0.5.3",
+      "jaxlib_version": "0.5.3"
+    }
+  },
+  "schema_version": 1
+}
