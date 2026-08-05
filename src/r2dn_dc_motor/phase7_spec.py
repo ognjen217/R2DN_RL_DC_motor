@@ -25,6 +25,32 @@ REQUIRED_PHASE7_CHECKS = {
     "final_report_includes_mean_median_worst_and_divergence",
 }
 TEST_BANK_CATEGORIES = ("id", "excitation_ood", "thermal_ood")
+TEST_BANK_SCENARIO_NAMES = ("prbs", "sine", "multisine")
+TEST_BANK_MAXIMUM_TEMPERATURE_C = 110.0
+TEST_BANK_MINIMUM_ANCHOR_BURN_IN_STEPS = 250
+LOCKED_TEST_BANK_SCENARIOS = (
+    {
+        "name": "prbs",
+        "kind": "prbs",
+        "amplitude_v": 5.0,
+        "hold_steps": 250,
+        "seed": 78011,
+    },
+    {
+        "name": "sine",
+        "kind": "sine",
+        "amplitude_v": 7.0,
+        "frequency_hz": 0.25,
+        "phase_rad": 0.35,
+    },
+    {
+        "name": "multisine",
+        "kind": "multisine",
+        "amplitudes_v": [3.0, 2.5, 2.0],
+        "frequencies_hz": [0.07, 0.37, 1.43],
+        "phases_rad": [0.2, 1.1, 2.0],
+    },
+)
 
 
 @dataclass(frozen=True)
@@ -209,6 +235,23 @@ class Phase7Spec:
 
         if tuple(self.test_bank.get("categories", ())) != TEST_BANK_CATEGORIES:
             errors.append("test-bank category catalog changed")
+        if tuple(self.test_bank.get("scenario_names", ())) != TEST_BANK_SCENARIO_NAMES:
+            errors.append("test-bank scenario catalog changed")
+        if self.test_bank.get("scenario_source") != "phase7_locked_long_horizon":
+            errors.append("test bank must use its Phase-7 long-horizon scenarios")
+        if tuple(self.test_bank.get("scenarios", ())) != LOCKED_TEST_BANK_SCENARIOS:
+            errors.append("locked thermally safe test-bank scenarios changed")
+        if (
+            int(self.test_bank.get("minimum_anchor_burn_in_steps", 0))
+            != TEST_BANK_MINIMUM_ANCHOR_BURN_IN_STEPS
+        ):
+            errors.append("test-bank minimum anchor burn-in must remain 250 steps")
+        if not math.isclose(
+            float(self.test_bank.get("preflight_maximum_temperature_c", math.nan)),
+            TEST_BANK_MAXIMUM_TEMPERATURE_C,
+            abs_tol=1e-12,
+        ):
+            errors.append("test-bank preflight temperature ceiling must remain 110 C")
         if tuple(float(value) for value in self.test_bank.get("horizons_s", ())) != (
             1.0,
             10.0,

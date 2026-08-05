@@ -394,7 +394,8 @@ su u `docs/hidden_thermal_comparison.md`.
 │   ├── validate_phase6.py
 │   ├── validate_phase6b.py
 │   ├── validate_phase7.py
-│   └── evaluate_thermal_test_bank.py
+│   ├── evaluate_thermal_test_bank.py
+│   └── preflight_thermal_test_bank.py
 └── tests/
 ```
 

@@ -61,6 +61,7 @@ validate-phase7 = "r2dn_dc_motor.validate_phase7:main"
 compare-r2dn-rk4 = "r2dn_dc_motor.compare_r2dn_rk4:main"
 compare-hidden-thermal-models = "r2dn_dc_motor.compare_hidden_thermal_models:main"
 evaluate-thermal-test-bank = "r2dn_dc_motor.evaluate_thermal_test_bank:main"
+preflight-thermal-test-bank = "r2dn_dc_motor.preflight_thermal_test_bank:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

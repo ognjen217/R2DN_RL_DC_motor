@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+import os
 from pathlib import Path
 
 from r2dn_dc_motor.compare_r2dn_rk4 import load_benchmark_checkpoint
@@ -62,6 +64,15 @@ def build_parser() -> argparse.ArgumentParser:
             "shorter than 1000 s. Official final evaluation remains locked."
         ),
     )
+    parser.add_argument(
+        "--preflight-report",
+        type=Path,
+        default=None,
+        help=(
+            "passing FULL/RK4-only preflight report; required for the official "
+            "final 1000 s comparison"
+        ),
+    )
     parser.add_argument("--chunk-steps", type=int, default=None)
     parser.add_argument(
         "--output-dir",
@@ -85,6 +96,14 @@ def main(argv: list[str] | None = None) -> int:
             "the final test bank is locked to the complete 1000 s horizon; "
             "use --allow-partial-final only for diagnostic runs"
         )
+    official_final = args.profile == "final" and args.duration_s == 1000.0
+    if official_final and args.preflight_report is None:
+        parser.error(
+            "the final 1000 s comparison requires --preflight-report from "
+            "r2dn_dc_motor.preflight_thermal_test_bank"
+        )
+    if args.allow_partial_final:
+        os.environ["R2DN_ALLOW_PARTIAL_HORIZON"] = "1"
     phase2 = load_phase2_spec()
     phase6 = load_phase6_spec()
     phase6b = load_phase6b_spec(phase2=phase2, phase6=phase6)
@@ -111,6 +130,11 @@ def main(argv: list[str] | None = None) -> int:
             phase6d=phase6d,
         )
         candidates.append(R2DNCandidate(name=label, checkpoint=checkpoint))
+    preflight_report = None
+    if args.preflight_report is not None:
+        preflight_report = json.loads(
+            args.preflight_report.read_text(encoding="utf-8")
+        )
     control_steps = int(round(args.duration_s / phase2.integration_settings.control_period_s))
     chunk_steps = args.chunk_steps or min(10_000, control_steps)
     report = run_thermal_test_bank(
@@ -118,12 +142,12 @@ def main(argv: list[str] | None = None) -> int:
         candidates=tuple(candidates),
         calibration=calibration,
         phase2=phase2,
-        phase6b=phase6b,
         phase7=phase7,
         runtime=runtime,
         profile_name=args.profile,
         duration_s=args.duration_s,
         chunk_steps=chunk_steps,
+        preflight_report=preflight_report,
         progress=lambda message: print(message, flush=True),
     )
     report_path, figure_path = generate_thermal_test_bank_artifacts(

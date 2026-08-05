@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import os
+import hashlib
 import json
 import math
+import os
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -17,8 +18,8 @@ from r2dn_dc_motor.data import Phase4Dataset
 from r2dn_dc_motor.models.isothermal_calibration import IsothermalCalibrationCheckpoint
 from r2dn_dc_motor.models.jax_runtime import JAXRuntime
 from r2dn_dc_motor.phase2_spec import Phase2Spec
-from r2dn_dc_motor.phase6b_spec import Phase6BSpec
 from r2dn_dc_motor.phase7_spec import TEST_BANK_CATEGORIES, Phase7Spec
+from r2dn_dc_motor.plants import MotorState
 from r2dn_dc_motor.validation.hidden_thermal_benchmark import run_isothermal_trace
 from r2dn_dc_motor.validation.phase5 import build_isothermal_models
 from r2dn_dc_motor.validation.r2dn_rk4_benchmark import (
@@ -26,7 +27,6 @@ from r2dn_dc_motor.validation.r2dn_rk4_benchmark import (
     build_benchmark_anchor,
     build_voltage_trace,
     calculate_accuracy,
-    resolve_scenario,
     run_r2dn_trace,
     run_rk4_trace,
 )
@@ -59,9 +59,11 @@ class ThermalTestBankReport:
     passed: bool
     benchmark: str
     evaluation_dataset_fingerprint: str
+    test_bank_fingerprint: str
     duration_s: float
     control_period_s: float
     horizons_s: tuple[float, ...]
+    maximum_preflight_temperature_c: float
     cases: tuple[dict[str, Any], ...]
     aggregate: dict[str, Any]
     interface_audit: dict[str, Any]
@@ -86,6 +88,47 @@ class ThermalTestBankReport:
                 f"{values['worst_combined_nrmse']:.6g}"
             )
         return "\n".join(lines)
+
+
+@dataclass(frozen=True)
+class ThermalTestBankPreflightReport:
+    """FULL/RK4-only evidence that the frozen bank is safe for its full horizon."""
+
+    schema_version: int
+    passed: bool
+    benchmark: str
+    evaluation_dataset_fingerprint: str
+    test_bank_fingerprint: str
+    profile_name: str
+    duration_s: float
+    control_period_s: float
+    maximum_preflight_temperature_c: float
+    scenario_source: str
+    scenarios: tuple[dict[str, Any], ...]
+    cases: tuple[dict[str, Any], ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    def summary(self) -> str:
+        status = "PASS" if self.passed else "FAIL"
+        maximum = max(
+            float(value["reference"]["maximum_temperature_c"])
+            for value in self.cases
+        )
+        return "\n".join(
+            (
+                f"THERMAL TEST BANK PREFLIGHT: {status}",
+                f"cases: {len(self.cases)}",
+                f"horizon: {self.duration_s:g} s",
+                f"maximum observed temperature: {maximum:.6g} C",
+                (
+                    "required maximum temperature: "
+                    f"{self.maximum_preflight_temperature_c:.6g} C"
+                ),
+                f"test-bank fingerprint: {self.test_bank_fingerprint}",
+            )
+        )
 
 
 def select_thermal_test_cases(
@@ -151,15 +194,242 @@ def select_thermal_test_cases(
     return tuple(cases)
 
 
+def resolve_test_bank_scenario(phase7: Phase7Spec, name: str) -> dict[str, Any]:
+    """Return one Phase-7-owned, thermally safe long-horizon scenario."""
+
+    matches = [
+        dict(value)
+        for value in phase7.test_bank["scenarios"]
+        if value["name"] == name
+    ]
+    if len(matches) != 1:
+        choices = ", ".join(value["name"] for value in phase7.test_bank["scenarios"])
+        raise ValueError(f"unknown Phase-7 test-bank scenario {name!r}: {choices}")
+    return matches[0]
+
+
+def thermal_test_bank_fingerprint(
+    dataset: Phase4Dataset,
+    *,
+    phase7: Phase7Spec,
+    profile_name: str,
+    cases: tuple[ThermalTestCase, ...],
+) -> str:
+    """Hash every dataset, anchor, and input choice that defines the bank."""
+
+    payload = {
+        "evaluation_dataset_fingerprint": dataset.fingerprint,
+        "profile_name": profile_name,
+        "selection_policy": phase7.test_bank["selection_policy"],
+        "anchor_seed": int(phase7.test_bank["anchor_seed"]),
+        "minimum_anchor_burn_in_steps": int(
+            phase7.test_bank["minimum_anchor_burn_in_steps"]
+        ),
+        "scenario_source": phase7.test_bank["scenario_source"],
+        "scenarios": phase7.test_bank["scenarios"],
+        "preflight_maximum_temperature_c": float(
+            phase7.test_bank["preflight_maximum_temperature_c"]
+        ),
+        "cases": [asdict(value) for value in cases],
+    }
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def run_thermal_test_bank_preflight(
+    *,
+    evaluation_dataset: Phase4Dataset,
+    phase2: Phase2Spec,
+    phase7: Phase7Spec,
+    profile_name: str = "final",
+    duration_s: float = 1000.0,
+    progress: Any | None = None,
+) -> ThermalTestBankPreflightReport:
+    """Run only FULL/RK4 and reject incomplete or thermally marginal cases."""
+
+    period = phase2.integration_settings.control_period_s
+    control_steps = int(round(duration_s / period))
+    if control_steps < 1 or not math.isclose(control_steps * period, duration_s):
+        raise ValueError("duration must contain an integer number of control periods")
+    configured_horizons = tuple(float(value) for value in phase7.test_bank["horizons_s"])
+    if not any(math.isclose(duration_s, value) for value in configured_horizons):
+        raise ValueError("preflight duration must equal a locked cumulative horizon")
+    minimum_burn_in = int(phase7.test_bank["minimum_anchor_burn_in_steps"])
+    cases = select_thermal_test_cases(
+        evaluation_dataset,
+        phase7=phase7,
+        profile_name=profile_name,
+        minimum_burn_in_steps=minimum_burn_in,
+    )
+    bank_fingerprint = thermal_test_bank_fingerprint(
+        evaluation_dataset,
+        phase7=phase7,
+        profile_name=profile_name,
+        cases=cases,
+    )
+    maximum_temperature = float(
+        phase7.test_bank["preflight_maximum_temperature_c"]
+    )
+    progress = progress or (lambda _: None)
+    payloads: list[dict[str, Any]] = []
+    for case in cases:
+        scenario = resolve_test_bank_scenario(phase7, case.scenario_name)
+        voltages = build_voltage_trace(
+            scenario,
+            duration_s=duration_s,
+            control_period_s=period,
+        )
+        trajectory = evaluation_dataset.load_trajectory(case.trajectory_id)
+        initial_state = MotorState.from_array(
+            trajectory.states[case.stop_step].astype(np.float64)
+        )
+        progress(
+            f"{case.case_id}: {case.scenario_name}, "
+            f"T0={initial_state.temperature_c:.3f} C"
+        )
+        full = run_rk4_trace(
+            phase2,
+            initial_state,
+            voltages,
+            duration_s=duration_s,
+        )
+        observed_maximum = float(np.max(full.temperatures_c))
+        complete = bool(
+            not full.terminated
+            and full.timing.control_steps_completed == control_steps
+        )
+        thermally_safe = bool(observed_maximum <= maximum_temperature)
+        case_passed = complete and thermally_safe
+        progress(
+            f"  {'PASS' if case_passed else 'FAIL'}: "
+            f"steps={full.timing.control_steps_completed}/{control_steps}, "
+            f"Tmax={observed_maximum:.3f} C"
+        )
+        payloads.append(
+            {
+                "case": asdict(case),
+                "scenario": scenario,
+                "initial_state": asdict(initial_state),
+                "voltage": {
+                    "minimum_v": float(np.min(voltages)),
+                    "maximum_v": float(np.max(voltages)),
+                    "rms_v": float(np.sqrt(np.mean(voltages**2))),
+                },
+                "reference": {
+                    "name": "FULL/RK4",
+                    "complete": complete,
+                    "thermally_safe": thermally_safe,
+                    "passed": case_passed,
+                    "termination_reason": full.termination_reason,
+                    "minimum_temperature_c": float(np.min(full.temperatures_c)),
+                    "maximum_temperature_c": observed_maximum,
+                    "final_temperature_c": float(full.temperatures_c[-1]),
+                    "temperature_headroom_c": maximum_temperature - observed_maximum,
+                    "maximum_absolute_current_a": float(
+                        max(
+                            abs(initial_state.current_a),
+                            np.max(np.abs(full.observations[:, 0])),
+                        )
+                    ),
+                    "maximum_absolute_speed_rad_s": float(
+                        max(
+                            abs(initial_state.speed_rad_s),
+                            np.max(np.abs(full.observations[:, 1])),
+                        )
+                    ),
+                    "timing": asdict(full.timing),
+                },
+            }
+        )
+    passed = all(bool(value["reference"]["passed"]) for value in payloads)
+    return ThermalTestBankPreflightReport(
+        schema_version=1,
+        passed=passed,
+        benchmark="full_rk4_thermal_test_bank_preflight",
+        evaluation_dataset_fingerprint=evaluation_dataset.fingerprint,
+        test_bank_fingerprint=bank_fingerprint,
+        profile_name=profile_name,
+        duration_s=duration_s,
+        control_period_s=period,
+        maximum_preflight_temperature_c=maximum_temperature,
+        scenario_source=str(phase7.test_bank["scenario_source"]),
+        scenarios=tuple(dict(value) for value in phase7.test_bank["scenarios"]),
+        cases=tuple(payloads),
+    )
+
+
+def generate_thermal_test_bank_preflight_artifact(
+    report: ThermalTestBankPreflightReport,
+    output_directory: Path | str,
+) -> Path:
+    """Persist the evidence needed to authorize the final model comparison."""
+
+    output = Path(output_directory)
+    output.mkdir(parents=True, exist_ok=True)
+    report_path = output / "thermal_test_bank_preflight.json"
+    report_path.write_text(
+        json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return report_path
+
+
+def validate_thermal_test_bank_preflight(
+    report: Mapping[str, Any],
+    *,
+    evaluation_dataset: Phase4Dataset,
+    phase7: Phase7Spec,
+    profile_name: str,
+    duration_s: float,
+    cases: tuple[ThermalTestCase, ...],
+) -> None:
+    """Reject stale, partial, failed, or differently configured preflight evidence."""
+
+    expected_fingerprint = thermal_test_bank_fingerprint(
+        evaluation_dataset,
+        phase7=phase7,
+        profile_name=profile_name,
+        cases=cases,
+    )
+    errors: list[str] = []
+    if report.get("benchmark") != "full_rk4_thermal_test_bank_preflight":
+        errors.append("unexpected preflight benchmark")
+    if report.get("passed") is not True:
+        errors.append("preflight report did not pass")
+    if report.get("evaluation_dataset_fingerprint") != evaluation_dataset.fingerprint:
+        errors.append("preflight dataset fingerprint does not match evaluation dataset")
+    if report.get("test_bank_fingerprint") != expected_fingerprint:
+        errors.append("preflight test-bank fingerprint does not match locked bank")
+    if report.get("profile_name") != profile_name:
+        errors.append("preflight profile does not match evaluation profile")
+    if not math.isclose(float(report.get("duration_s", math.nan)), duration_s):
+        errors.append("preflight duration does not match evaluation duration")
+    if not math.isclose(
+        float(report.get("maximum_preflight_temperature_c", math.nan)),
+        float(phase7.test_bank["preflight_maximum_temperature_c"]),
+    ):
+        errors.append("preflight temperature ceiling changed")
+    reported_cases = tuple(report.get("cases", ()))
+    if len(reported_cases) != len(cases) or not all(
+        value.get("reference", {}).get("passed") is True for value in reported_cases
+    ):
+        errors.append("preflight does not contain a passing result for every case")
+    if errors:
+        raise ValueError("invalid thermal test-bank preflight:\n" + "\n".join(errors))
+
+
 def _summarize_full_rk4_result(result: object) -> str:
     """Return a compact, array-safe summary for failed FULL/RK4 rollouts."""
-    import numpy as np
 
     try:
         fields = vars(result)
     except TypeError:
         return repr(result)
-
     summary: dict[str, object] = {}
     for name, value in fields.items():
         if isinstance(value, np.ndarray):
@@ -186,7 +456,6 @@ def _summarize_full_rk4_result(result: object) -> str:
         else:
             text = repr(value)
             summary[name] = text if len(text) <= 300 else text[:297] + "..."
-
     return repr(summary)
 
 
@@ -196,12 +465,12 @@ def run_thermal_test_bank(
     candidates: tuple[R2DNCandidate, ...],
     calibration: IsothermalCalibrationCheckpoint,
     phase2: Phase2Spec,
-    phase6b: Phase6BSpec,
     phase7: Phase7Spec,
     runtime: JAXRuntime,
     profile_name: str = "final",
     duration_s: float = 1000.0,
     chunk_steps: int = 10_000,
+    preflight_report: Mapping[str, Any] | None = None,
     progress: Any | None = None,
 ) -> ThermalTestBankReport:
     """Evaluate all learned and physical models on one frozen test bank."""
@@ -223,21 +492,37 @@ def run_thermal_test_bank(
     if not horizons or not math.isclose(horizons[-1], duration_s):
         if os.environ.get("R2DN_ALLOW_PARTIAL_HORIZON") != "1":
             raise ValueError("duration must equal one of the locked cumulative horizons")
-    minimum_burn_in = max(
-        int(value.checkpoint.manifest.burn_in_steps) for value in candidates
-    )
+    minimum_burn_in = int(phase7.test_bank["minimum_anchor_burn_in_steps"])
     cases = select_thermal_test_cases(
         evaluation_dataset,
         phase7=phase7,
         profile_name=profile_name,
         minimum_burn_in_steps=minimum_burn_in,
     )
+    bank_fingerprint = thermal_test_bank_fingerprint(
+        evaluation_dataset,
+        phase7=phase7,
+        profile_name=profile_name,
+        cases=cases,
+    )
+    if preflight_report is not None:
+        validate_thermal_test_bank_preflight(
+            preflight_report,
+            evaluation_dataset=evaluation_dataset,
+            phase7=phase7,
+            profile_name=profile_name,
+            duration_s=duration_s,
+            cases=cases,
+        )
+    maximum_temperature = float(
+        phase7.test_bank["preflight_maximum_temperature_c"]
+    )
     iso_models = build_isothermal_models(calibration, phase2)
     progress = progress or (lambda _: None)
     case_payloads: list[dict[str, Any]] = []
     for case in cases:
         progress(f"{case.case_id}: {case.scenario_name}, T={case.anchor_temperature_c:.3f} C")
-        scenario = resolve_scenario(phase6b, case.scenario_name)
+        scenario = resolve_test_bank_scenario(phase7, case.scenario_name)
         voltages = build_voltage_trace(
             scenario,
             duration_s=duration_s,
@@ -256,11 +541,15 @@ def run_thermal_test_bank(
             duration_s=duration_s,
         )
         if full.terminated or full.timing.control_steps_completed != control_steps:
-            progress(
-                "FULL/RK4 diagnostic: " + _summarize_full_rk4_result(full)
-            )
+            progress("FULL/RK4 diagnostic: " + _summarize_full_rk4_result(full))
             raise RuntimeError(
                 f"FULL/RK4 terminated in {case.case_id}: {full.termination_reason}"
+            )
+        observed_maximum_temperature = float(np.max(full.temperatures_c))
+        if observed_maximum_temperature > maximum_temperature:
+            raise RuntimeError(
+                f"FULL/RK4 exceeded the Phase-7 preflight ceiling in {case.case_id}: "
+                f"{observed_maximum_temperature:.6g} C > {maximum_temperature:.6g} C"
             )
         model_payload: dict[str, Any] = {}
         for candidate in candidates:
@@ -352,10 +641,18 @@ def run_thermal_test_bank(
                 "reference": {
                     "name": "FULL/RK4",
                     "internal_temperature_state": True,
+                    "scenario_source": phase7.test_bank["scenario_source"],
+                    "initial_current_a": reference_anchor.initial_full_state.current_a,
+                    "initial_speed_rad_s": reference_anchor.initial_full_state.speed_rad_s,
                     "initial_temperature_c": (
                         reference_anchor.initial_full_state.temperature_c
                     ),
+                    "minimum_temperature_c": float(np.min(full.temperatures_c)),
+                    "maximum_temperature_c": observed_maximum_temperature,
                     "final_temperature_c": float(full.temperatures_c[-1]),
+                    "preflight_temperature_headroom_c": (
+                        maximum_temperature - observed_maximum_temperature
+                    ),
                     "timing": asdict(full.timing),
                 },
                 "models": model_payload,
@@ -381,13 +678,15 @@ def run_thermal_test_bank(
         aggregate["model_totals"][name]["divergent_cases"] for name in model_names
     )
     return ThermalTestBankReport(
-        schema_version=1,
+        schema_version=2,
         passed=bool(interface_audit["passed"] and divergent == 0),
         benchmark="multi_trajectory_hidden_thermal_test_bank",
         evaluation_dataset_fingerprint=evaluation_dataset.fingerprint,
+        test_bank_fingerprint=bank_fingerprint,
         duration_s=duration_s,
         control_period_s=period,
         horizons_s=horizons,
+        maximum_preflight_temperature_c=maximum_temperature,
         cases=tuple(case_payloads),
         aggregate=aggregate,
         interface_audit=interface_audit,

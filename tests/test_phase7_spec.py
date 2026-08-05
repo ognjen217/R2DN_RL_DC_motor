@@ -36,6 +36,17 @@ def test_broadband_dataset_and_phase7_specs_lock_the_hidden_thermal_protocol():
     assert phase7.training["model_type"] == "ContractingR2DN"
     assert phase7.training["absolute_state_output_retained"] is True
     assert phase7.interface["hidden_evaluation_only"] == ["winding_temperature_c"]
+    assert phase7.test_bank["scenario_source"] == "phase7_locked_long_horizon"
+    assert phase7.test_bank["preflight_maximum_temperature_c"] == 110.0
+    assert [value["name"] for value in phase7.test_bank["scenarios"]] == [
+        "prbs",
+        "sine",
+        "multisine",
+    ]
+    assert max(
+        float(value.get("amplitude_v", sum(value.get("amplitudes_v", ()))))
+        for value in phase7.test_bank["scenarios"]
+    ) == 7.5
     assert tuple(value.name for value in phase7.variants) == (
         "broadband_standard",
         "broadband_delta_multiscale",
@@ -48,6 +59,14 @@ def test_phase7_rejects_temperature_as_a_training_feature():
     raw["interface"]["observation"].append("winding_temperature_c")
 
     with pytest.raises(SpecValidationError, match="observations"):
+        Phase7Spec.from_dict(raw)
+
+
+def test_phase7_rejects_reusing_phase6b_stress_voltage_in_the_test_bank():
+    raw = tomllib.loads(Path("configs/phase7.toml").read_text(encoding="utf-8"))
+    raw["test_bank"]["scenarios"][0]["amplitude_v"] = 18.0
+
+    with pytest.raises(SpecValidationError, match="thermally safe"):
         Phase7Spec.from_dict(raw)
 
 

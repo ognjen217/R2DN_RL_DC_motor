@@ -41,7 +41,37 @@ does not change the absolute-state output used during deployment.
 
 ## Reproducible execution
 
-### 1. Multi-trajectory baseline for the current Phase-6E model
+### 1. Preflight the frozen long-horizon bank with FULL/RK4 only
+
+Phase 7 no longer reuses the Phase-6B stress inputs. Its dedicated scenarios
+are locked in `configs/phase7.toml`:
+
+- PRBS: `5 V`, 250-step hold, seed `78011`;
+- sine: `7 V`, `0.25 Hz`, phase `0.35 rad`;
+- multisine: amplitudes `[3, 2.5, 2] V`, frequencies
+  `[0.07, 0.37, 1.43] Hz`, phases `[0.2, 1.1, 2.0] rad`.
+
+Before any R2DN evaluation, run all nine 1000-second FULL/RK4 references:
+
+```bash
+mkdir -p results/phase7/current_test_bank_preflight
+
+python -m r2dn_dc_motor.preflight_thermal_test_bank \
+  --evaluation-dataset data/phase4-full-v1 \
+  --profile final \
+  --duration-s 1000 \
+  --output-dir results/phase7/current_test_bank_preflight \
+  2>&1 | tee results/phase7/current_test_bank_preflight/preflight.log
+```
+
+This command does not import JAX and does not require CUDA or an R2DN
+checkpoint. It passes only if every reference completes one million control
+steps without any plant-domain termination and every trajectory satisfies
+`Tmax <= 110 C`. The plant limit remains `120 C`; the lower preflight ceiling
+provides a 10 C safety margin. The JSON report freezes the dataset fingerprint,
+whole-trajectory anchors, scenario parameters, and a test-bank fingerprint.
+
+### 2. Multi-trajectory baseline for the current Phase-6E model
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 \
@@ -52,6 +82,8 @@ python -m r2dn_dc_motor.evaluate_thermal_test_bank \
   --r2dn-model current checkpoints/phase6e/r2dn-v1 data/phase4-full-v1 \
   --profile final \
   --duration-s 1000 \
+  --preflight-report \
+    results/phase7/current_test_bank_preflight/thermal_test_bank_preflight.json \
   --output-dir results/phase7/current_test_bank
 ```
 
@@ -59,7 +91,7 @@ This replaces the single-trajectory conclusion with mean, median, worst case,
 win count, and divergence count across ID, excitation-OOD, and thermal-OOD
 cases.
 
-### 2. Generate and validate the broadband FULL dataset
+### 3. Generate and validate the broadband FULL dataset
 
 ```bash
 python -m r2dn_dc_motor.validate_phase4 \
@@ -70,7 +102,7 @@ python -m r2dn_dc_motor.validate_phase4 \
   --artifacts-dir results/phase7/dataset
 ```
 
-### 3. Refit ISO-CAL once on the new train split
+### 4. Refit ISO-CAL once on the new train split
 
 ```bash
 python -m r2dn_dc_motor.validate_phase5 \
@@ -83,7 +115,7 @@ python -m r2dn_dc_motor.validate_phase5 \
 The fit still uses only current, speed, and applied voltage. It is bound to the
 new dataset fingerprint and cannot read validation/test trajectories.
 
-### 4. Train/resume the pure-R2DN ablation
+### 5. Train/resume the pure-R2DN ablation
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 \
@@ -101,7 +133,18 @@ Each variant/seed is written to an atomic run cache, so interruption does not
 discard completed runs. Selection uses only fixed validation windows over 5000
 steps. ID/OOD test-bank results cannot select the model.
 
-### 5. Final current-versus-improved comparison on one frozen bank
+### 6. Preflight and run the final current-versus-improved comparison
+
+The broadband-v2 evaluation dataset selects a different set of held-out
+anchors, so it requires its own preflight report:
+
+```bash
+python -m r2dn_dc_motor.preflight_thermal_test_bank \
+  --evaluation-dataset data/phase4-broadband-v2 \
+  --profile final \
+  --duration-s 1000 \
+  --output-dir results/phase7/final_test_bank_preflight
+```
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 \
@@ -113,6 +156,8 @@ python -m r2dn_dc_motor.evaluate_thermal_test_bank \
   --r2dn-model improved checkpoints/phase7/r2dn-v1 data/phase4-broadband-v2 \
   --profile final \
   --duration-s 1000 \
+  --preflight-report \
+    results/phase7/final_test_bank_preflight/thermal_test_bank_preflight.json \
   --output-dir results/phase7/final_test_bank
 ```
 
